@@ -1,0 +1,36 @@
+{% extends 'base.html'%}
+{% block title %}
+Prrrreferisci
+{% endblock %}
+{% block styles %}
+	.container{
+		text-align: center;
+		vertical-align:middle;
+		position: relative;
+		top:1200px
+	}
+	#preferisci-button {
+		color: #ffffff;
+		font-size: 56px;
+		background-color: #db1fc8;
+		border: none;
+		box-shadow: 0px 25px 25px #bfbfbf;
+		border-radius: 70px;
+		width: 600px;
+		height: 200px;
+		font-family: "Copperlate", Fantasy, sans-serif;
+	}
+	#preferisci-button:hover {background-color: #912386}
+	#preferisci-button:active {
+		 background-color: #912386;
+		 box-shadow: 0 25px 25px #b0b0b0;
+		 transform: translateY(4px);
+	}
+{% endblock %}
+{% block body %}
+	<div class="container" style>
+		<button id="preferisci-button" type="button" class="btn" onclick="location.replace('/prrreferisci')">
+			Let's start!
+		</button>
+	</div>
+{% endblock %}
