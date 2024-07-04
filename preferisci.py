@@ -41,6 +41,7 @@ def main():
 def game():
 	newPreferisci = generatePreferisci()
 	alternatives = getAlternatives(newPreferisci)
+	print(f"Working on alternatives {alternatives['firstAlternative']} and alternatives['secondAlternative']")
 	firstAlternative = alternatives['firstAlternative'].encode('latin-1').decode('utf-8')
 	secondAlternative = alternatives['secondAlternative'].encode('latin-1').decode('utf-8')
 	preferisciGenerated.append(newPreferisci)
