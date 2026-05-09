@@ -1,0 +1,27 @@
+name: WhatsApp Scheduled Message
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'   # ogni 4 ore
+  workflow_dispatch:          # avvio manuale dal telefono per testare
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Send WhatsApp message
+        env:
+          ULTRAMSG_INSTANCE: ${{ secrets.ULTRAMSG_INSTANCE }}
+          ULTRAMSG_TOKEN: ${{ secrets.ULTRAMSG_TOKEN }}
+          WHATSAPP_RECIPIENT: ${{ secrets.WHATSAPP_RECIPIENT }}
+          WHATSAPP_MESSAGE: ${{ secrets.WHATSAPP_MESSAGE }}
+        run: python send_whatsapp.py

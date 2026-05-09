@@ -4,3 +4,4 @@ gunicorn
 apscheduler
 selenium
 webdriver-manager
+# send_whatsapp.py usa solo `requests`, già incluso
