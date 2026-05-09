@@ -2,7 +2,7 @@ name: WhatsApp Scheduled Message
 
 on:
   schedule:
-    - cron: '0 */2 * * *'   # ogni 2 ore
+    - cron: '*/30 * * * *'   # ogni 30 minuti
   workflow_dispatch:          # avvio manuale dal telefono per testare
 
 jobs:
