@@ -118,30 +118,27 @@ async function sbUpload(file, name, desc) {
   const sb = getSB();
   const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
   const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, {
-    metadata: { name, desc, mimetype: file.type },
-  });
-  if (error) throw error;
+  const { error: storageError } = await sb.storage.from(BUCKET).upload(path, file);
+  if (storageError) throw storageError;
+  const { error: dbError } = await sb.from('files').insert({ path, name, description: desc, type: file.type });
+  if (dbError) { await sb.storage.from(BUCKET).remove([path]); throw dbError; }
 }
 
 async function sbList() {
   const sb = getSB();
-  const { data, error } = await sb.storage.from(BUCKET).list('', {
-    sortBy: { column: 'created_at', order: 'desc' },
-  });
+  const { data, error } = await sb.from('files').select('*').order('created_at', { ascending: false });
   if (error) throw error;
-  return (data || []).filter(f => f.name !== '.emptyFolderPlaceholder');
+  return data || [];
 }
 
-async function sbDelete(path) {
+async function sbDelete(id, path) {
   const sb = getSB();
-  const { error } = await sb.storage.from(BUCKET).remove([path]);
-  if (error) throw error;
+  await sb.storage.from(BUCKET).remove([path]);
+  await sb.from('files').delete().eq('id', id);
 }
 
 function sbPublicUrl(path) {
-  const sb = getSB();
-  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  return getSB().storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 function fileTypeIcon(type = '') {
@@ -444,15 +441,15 @@ function FilesSection({ p, tilt }) {
     setUploading(false);
   }
 
-  async function removeFile(path, e) {
+  async function removeFile(id, path, e) {
     e.stopPropagation();
     if (!confirm('Rimuovere questo file?')) return;
-    await sbDelete(path);
+    await sbDelete(id, path);
     loadFiles();
   }
 
   function openFile(f) {
-    window.open(sbPublicUrl(f.name), '_blank');
+    window.open(sbPublicUrl(f.path), '_blank');
   }
 
   return (
@@ -485,25 +482,21 @@ function FilesSection({ p, tilt }) {
 
           {!loading && files.length > 0 && (
             <div className="files-grid">
-              {files.map((f, i) => {
-                const meta = f.metadata || {};
-                const type = meta.mimetype || '';
-                return (
-                  <div
-                    key={f.id || f.name}
-                    className="file-card"
-                    style={{ borderColor: p.ink, transform: tilt ? `rotate(${i % 2 === 0 ? -0.5 : 0.5}deg)` : 'none' }}
-                    onClick={() => openFile(f)}
-                  >
-                    <div className="file-icon" style={{ background: p.terra, color: p.bg }}>{fileTypeIcon(type)}</div>
-                    <div className="file-info">
-                      <div className="file-title">{meta.name || f.name}</div>
-                      {meta.desc && <div className="file-desc">{meta.desc}</div>}
-                    </div>
-                    <button className="file-del" style={{ color: p.ink }} onClick={(e) => removeFile(f.name, e)} aria-label="Rimuovi">✕</button>
+              {files.map((f, i) => (
+                <div
+                  key={f.id}
+                  className="file-card"
+                  style={{ borderColor: p.ink, transform: tilt ? `rotate(${i % 2 === 0 ? -0.5 : 0.5}deg)` : 'none' }}
+                  onClick={() => openFile(f)}
+                >
+                  <div className="file-icon" style={{ background: p.terra, color: p.bg }}>{fileTypeIcon(f.type)}</div>
+                  <div className="file-info">
+                    <div className="file-title">{f.name}</div>
+                    {f.description && <div className="file-desc">{f.description}</div>}
                   </div>
-                );
-              })}
+                  <button className="file-del" style={{ color: p.ink }} onClick={(e) => removeFile(f.id, f.path, e)} aria-label="Rimuovi">✕</button>
+                </div>
+              ))}
             </div>
           )}
       </>
