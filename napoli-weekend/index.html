@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekend a Napoli 🍕</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;700;800&display=swap');
+
+    :root {
+      --yellow: #FFD93D;
+      --red: #FF6B6B;
+      --blue: #4ECDC4;
+      --navy: #1A1A5E;
+      --orange: #FF9A3C;
+      --green: #6BCB77;
+      --white: #FFFDF7;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--white);
+      color: var(--navy);
+      overflow-x: hidden;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #2d2d8e 50%, #1a6699 100%);
+      color: white;
+      text-align: center;
+      padding: 60px 20px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: var(--white);
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+
+    .hero-emoji {
+      font-size: 4rem;
+      display: block;
+      margin-bottom: 10px;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .hero h1 {
+      font-family: 'Pacifico', cursive;
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      color: var(--yellow);
+      text-shadow: 3px 3px 0 var(--orange);
+      margin-bottom: 10px;
+    }
+
+    .hero .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+
+    .crew {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .crew-badge {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 30px;
+      padding: 8px 18px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      backdrop-filter: blur(4px);
+    }
+
+    /* INFO BAR */
+    .info-bar {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 24px 20px;
+      background: var(--yellow);
+    }
+
+    .info-pill {
+      background: white;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* MAIN */
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+    }
+
+    /* SECTION TITLE */
+    .section-title {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.8rem;
+      margin: 40px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* DAY CARD */
+    .day-card {
+      border-radius: 20px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.08);
+    }
+
+    .day-header {
+      padding: 16px 20px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .day-1 .day-header { background: var(--red); }
+    .day-2 .day-header { background: var(--orange); }
+    .day-3 .day-header { background: var(--blue); color: var(--navy); }
+    .day-4 .day-header { background: var(--green); color: var(--navy); }
+
+    .day-body {
+      background: white;
+      padding: 16px 20px;
+      border: 2px solid rgba(0,0,0,0.06);
+      border-top: none;
+      border-radius: 0 0 20px 20px;
+    }
+
+    .time-slot {
+      display: flex;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px dashed rgba(0,0,0,0.08);
+    }
+
+    .time-slot:last-child { border-bottom: none; }
+
+    .time {
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: var(--navy);
+      opacity: 0.5;
+      min-width: 48px;
+      padding-top: 2px;
+    }
+
+    .slot-content { flex: 1; }
+
+    .slot-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+
+    .slot-desc {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      line-height: 1.4;
+    }
+
+    .tag {
+      display: inline-block;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-top: 4px;
+      margin-right: 4px;
+    }
+
+    .tag-food { background: #FFE8E8; color: var(--red); }
+    .tag-visit { background: #E8F4FF; color: #1a6699; }
+    .tag-walk { background: #E8FFF0; color: #2d7a4a; }
+    .tag-vibes { background: #FFF3E0; color: var(--orange); }
+
+    /* TIPS GRID */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .tip-card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.07);
+      border: 2px solid rgba(0,0,0,0.05);
+    }
+
+    .tip-card .icon { font-size: 1.8rem; margin-bottom: 8px; display: block; }
+    .tip-card h4 { font-weight: 800; margin-bottom: 4px; font-size: 0.95rem; }
+    .tip-card p { font-size: 0.82rem; opacity: 0.7; line-height: 1.4; }
+
+    /* FOOD LIST */
+    .food-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .food-item {
+      background: white;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.07);
+      border-left: 4px solid var(--red);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .food-item .icon { font-size: 1.5rem; flex-shrink: 0; }
+    .food-item h4 { font-weight: 800; font-size: 0.95rem; }
+    .food-item p { font-size: 0.82rem; opacity: 0.7; margin-top: 2px; }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 30px 20px;
+      background: var(--navy);
+      color: white;
+      font-size: 0.9rem;
+    }
+
+    footer span { color: var(--yellow); font-weight: 800; }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <em class="hero-emoji">🌋</em>
+    <h1>Napoli Weekend</h1>
+    <p class="subtitle">14 – 17 Maggio 2026</p>
+    <div class="crew">
+      <span class="crew-badge">👧 Doc</span>
+      <span class="crew-badge">👧 Sorella</span>
+      <span class="crew-badge">👧 Paola</span>
+    </div>
+  </header>
+
+  <div class="info-bar">
+    <div class="info-pill">📍 Via Sant'Anna dei Lombardi 40</div>
+    <div class="info-pill">📅 4 giorni</div>
+    <div class="info-pill">🍕 Napoli</div>
+  </div>
+
+  <main>
+
+    <!-- ITINERARIO -->
+    <h2 class="section-title">📅 Itinerario</h2>
+
+    <!-- GIOVEDÌ -->
+    <div class="day-card day-1">
+      <div class="day-header">🚂 Giovedì 14 Maggio</div>
+      <div class="day-body">
+        <div class="time-slot">
+          <span class="time">15:00</span>
+          <div class="slot-content">
+            <div class="slot-title">Doc + Sorella arrivano</div>
+            <div class="slot-desc">Check-in in via Sant'Anna dei Lombardi, sistemate e prime passeggiate nel centro storico.</div>
+            <span class="tag tag-walk">🚶 passeggiata</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">16:00</span>
+          <div class="slot-content">
+            <div class="slot-title">Paola arriva 🎉</div>
+            <div class="slot-desc">Si comincia davvero! Tutti e tre insieme.</div>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">sera</span>
+          <div class="slot-content">
+            <div class="slot-title">Prima pizza napoletana</div>
+            <div class="slot-desc">Spaccanapoli, orientarsi nel centro, cena in una delle pizzerie storiche del quartiere.</div>
+            <span class="tag tag-food">🍕 cibo</span>
+            <span class="tag tag-walk">🚶 centro storico</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VENERDÌ -->
+    <div class="day-card day-2">
+      <div class="day-header">☀️ Venerdì 15 Maggio — Giornata piena</div>
+      <div class="day-body">
+        <div class="time-slot">
+          <span class="time">mattina</span>
+          <div class="slot-content">
+            <div class="slot-title">Centro storico & Cappella Sansevero</div>
+            <div class="slot-desc">Il Cristo Velato è imperdibile. Da prenotare prima! Poi il Duomo e i vicoli dei Decumani.</div>
+            <span class="tag tag-visit">🏛 cultura</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">pranzo</span>
+          <div class="slot-content">
+            <div class="slot-title">Street food ai Quartieri Spagnoli</div>
+            <div class="slot-desc">Pizza fritta, cuoppo di frittura, sfogliatella calda. Mangiare camminando è d'obbligo.</div>
+            <span class="tag tag-food">🍕 street food</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">pomeriggio</span>
+          <div class="slot-content">
+            <div class="slot-title">Quartieri Spagnoli & shopping</div>
+            <div class="slot-desc">Murales di Maradona, negozietti, souvenir. Atmosfera unica.</div>
+            <span class="tag tag-walk">🚶 quartieri</span>
+            <span class="tag tag-vibes">✨ vibes</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">sera</span>
+          <div class="slot-content">
+            <div class="slot-title">Aperitivo sul Lungomare</div>
+            <div class="slot-desc">Via Caracciolo al tramonto, poi cena a Chiaia o Mergellina.</div>
+            <span class="tag tag-vibes">🌅 tramonto</span>
+            <span class="tag tag-food">🍷 aperitivo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SABATO -->
+    <div class="day-card day-3">
+      <div class="day-header">🌊 Sabato 16 Maggio — Mare & relax</div>
+      <div class="day-body">
+        <div class="time-slot">
+          <span class="time">mattina</span>
+          <div class="slot-content">
+            <div class="slot-title">Castel dell'Ovo & Lungomare</div>
+            <div class="slot-desc">Il castello sul mare, la passeggiata da cartolina. Foto obbligatorie.</div>
+            <span class="tag tag-visit">🏰 castello</span>
+            <span class="tag tag-walk">🌊 lungomare</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">pranzo</span>
+          <div class="slot-content">
+            <div class="slot-title">Frittura di pesce a Mergellina</div>
+            <div class="slot-desc">Cuoppo di mare sul porto, gelato di Mergellina per finire.</div>
+            <span class="tag tag-food">🐟 pesce</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">pomeriggio</span>
+          <div class="slot-content">
+            <div class="slot-title">Posillipo</div>
+            <div class="slot-desc">Il quartiere panoramico con vista sul Golfo. Parco Virgiliano se volete distendervi.</div>
+            <span class="tag tag-walk">🌿 panorama</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">sera</span>
+          <div class="slot-content">
+            <div class="slot-title">Cena speciale — ultima notte</div>
+            <div class="slot-desc">Scegliete il posto che vi ha fatto più gola durante il weekend. 🥂</div>
+            <span class="tag tag-food">🍽 cena</span>
+            <span class="tag tag-vibes">✨ ultima notte</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOMENICA -->
+    <div class="day-card day-4">
+      <div class="day-header">👋 Domenica 17 Maggio — Rientro</div>
+      <div class="day-body">
+        <div class="time-slot">
+          <span class="time">mattina</span>
+          <div class="slot-content">
+            <div class="slot-title">Colazione con sfogliatella</div>
+            <div class="slot-desc">Sfogliatella riccia calda e caffè napoletano al bar. Il modo migliore per salutare Napoli.</div>
+            <span class="tag tag-food">☕ colazione</span>
+          </div>
+        </div>
+        <div class="time-slot">
+          <span class="time">12:15</span>
+          <div class="slot-content">
+            <div class="slot-title">Si parte 👋</div>
+            <div class="slot-desc">Ci si rivede alla prossima avventura!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DA MANGIARE -->
+    <h2 class="section-title">🍕 Da mangiare assolutamente</h2>
+    <div class="food-list">
+      <div class="food-item">
+        <span class="icon">🍕</span>
+        <div>
+          <h4>Pizza verace</h4>
+          <p>Da Michele, Sorbillo o Di Matteo — ognuna ha i suoi fan accaniti. Provatene più di una.</p>
+        </div>
+      </div>
+      <div class="food-item">
+        <span class="icon">🥐</span>
+        <div>
+          <h4>Sfogliatella riccia</h4>
+          <p>Calda, fragrante, ripiena di ricotta. Antonietta al Vomero o Attanasio alla stazione.</p>
+        </div>
+      </div>
+      <div class="food-item">
+        <span class="icon">🍦</span>
+        <div>
+          <h4>Gelato a Mergellina</h4>
+          <p>La passeggiata sul porto con gelato in mano è un classico. Bar Mennella o Chalet Ciro.</p>
+        </div>
+      </div>
+      <div class="food-item">
+        <span class="icon">🍟</span>
+        <div>
+          <h4>Cuoppo di frittura</h4>
+          <p>Il cono di carta con frittura mista — pizza fritta, zeppoline, crocchè. Street food al massimo.</p>
+        </div>
+      </div>
+      <div class="food-item">
+        <span class="icon">☕</span>
+        <div>
+          <h4>Caffè napoletano</h4>
+          <p>Al bancone, senza fretta. Qui il caffè è una religione. Ogni bar va bene.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIPS -->
+    <h2 class="section-title">💡 Tips</h2>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <span class="icon">🎟</span>
+        <h4>Cappella Sansevero</h4>
+        <p>Prenota online con anticipo — si esaurisce in fretta, specialmente il weekend.</p>
+      </div>
+      <div class="tip-card">
+        <span class="icon">👟</span>
+        <h4>Scarpe comode</h4>
+        <p>Il centro storico è tutto sampietrini e salite. Niente tacchi.</p>
+      </div>
+      <div class="tip-card">
+        <span class="icon">🚌</span>
+        <h4>Spostamenti</h4>
+        <p>Metro linea 1 è moderna e bella. Altrimenti taxi o a piedi — il centro è compatto.</p>
+      </div>
+      <div class="tip-card">
+        <span class="icon">📍</span>
+        <h4>Base perfetta</h4>
+        <p>Via Sant'Anna dei Lombardi è nel cuore del centro storico — tutto è raggiungibile a piedi.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>🍕 <span>Napoli</span>, maggio 2026 &nbsp;·&nbsp; fatto con amore (e fame) 🌋</p>
+  </footer>
+
+</body>
+</html>
