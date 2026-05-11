@@ -44,7 +44,7 @@ const ITINERARY = [
     items: [
       { t: "15:00", title: "Doc + Sorella arrivano", body: "Check-in in via Sant'Anna dei Lombardi, sistemate e prime passeggiate nel centro storico.", tags: ["🚶 passeggiata"] },
       { t: "16:00", title: "Paola arriva 🎉", body: "Si comincia davvero! Tutti e tre insieme.", tags: [] },
-      { t: "17:00", title: "Napoli Sotterranea 🕳️", body: "Visita guidata nelle gallerie sotterranee della città: acquedotti romani, cunicoli, storia nascosta.", tags: ["🏛 cultura"] },
+      { t: "19:00", title: "Napoli Sotterranea 🕳️", body: "Visita guidata nelle gallerie sotterranee della città: acquedotti romani, cunicoli, storia nascosta.", tags: ["🏛 cultura"] },
       { t: "sera", title: "Prima pizza napoletana", body: "Spaccanapoli, orientarsi nel centro, cena in una delle pizzerie storiche del quartiere.", tags: ["🍕 cibo", "🚶 centro storico"] },
     ],
   },
