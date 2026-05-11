@@ -105,10 +105,51 @@ const TIPS = [
   { icon: "📍", title: "Base perfetta", body: "Via Sant'Anna dei Lombardi è nel cuore del centro storico — tutto è raggiungibile a piedi." },
 ];
 
-const FILES = [
-  // Aggiungi qui i tuoi file: { icon, title, desc, url }
-  // Esempio: { icon: "🎟", title: "Biglietto Napoli Sotterranea", desc: "Prenotazione giovedì 19:00", url: "files/napoli-sotterranea.pdf" },
-];
+/* ---------- FILES — IndexedDB ---------- */
+function openFilesDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('napoli-weekend-files', 1);
+    req.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbSaveFile(blob, name, desc) {
+  const db = await openFilesDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('files', 'readwrite');
+    const req = tx.objectStore('files').add({ blob, name, desc, type: blob.type, date: Date.now() });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbGetFiles() {
+  const db = await openFilesDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('files', 'readonly');
+    const req = tx.objectStore('files').getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbDeleteFile(id) {
+  const db = await openFilesDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('files', 'readwrite');
+    const req = tx.objectStore('files').delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+function fileTypeIcon(type = '') {
+  if (type.startsWith('image/')) return '🖼';
+  if (type === 'application/pdf') return '📄';
+  if (type.includes('word') || type.includes('document')) return '📝';
+  if (type.includes('sheet') || type.includes('excel')) return '📊';
+  return '📎';
+}
 
 /* ---------- Tweaks ---------- */
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -367,42 +408,124 @@ function TipsSection({ p, tilt }) {
 
 /* ---------- FILES ---------- */
 function FilesSection({ p, tilt }) {
-  const empty = FILES.length === 0;
+  const [files, setFiles] = useState([]);
+  const [pending, setPending] = useState(null);
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => { loadFiles(); }, []);
+
+  async function loadFiles() {
+    try { setFiles((await dbGetFiles()).reverse()); } catch (e) {}
+  }
+
+  function pickFile(file) {
+    if (!file) return;
+    setPending(file);
+    setName(file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '));
+    setDesc('');
+  }
+
+  async function confirmUpload() {
+    if (!pending || !name.trim()) return;
+    try {
+      await dbSaveFile(pending, name.trim(), desc.trim());
+      setPending(null);
+      loadFiles();
+    } catch (e) {}
+  }
+
+  async function removeFile(id, e) {
+    e.stopPropagation();
+    await dbDeleteFile(id);
+    loadFiles();
+  }
+
+  function openFile(f) {
+    const url = URL.createObjectURL(f.blob);
+    if (f.blob.type.startsWith('image/') || f.blob.type === 'application/pdf') {
+      window.open(url, '_blank');
+    } else {
+      const a = document.createElement('a');
+      a.href = url; a.download = f.name; a.click();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
   return (
     <section className="files" style={{ background: p.bg, color: p.ink }}>
       <div className="section-head">
         <div className="section-num" style={{ color: p.terra }}>04</div>
         <h2 className="section-title">
-          <span style={{ background: p.terra, color: p.bg }}>File</span>{" "}
-          <span style={{ fontStyle: "italic" }}>utili</span>
+          <span style={{ background: p.terra, color: p.bg }}>File</span>{' '}
+          <span style={{ fontStyle: 'italic' }}>utili</span>
         </h2>
         <p className="section-sub">biglietti, prenotazioni, documenti</p>
       </div>
 
-      {empty ? (
-        <div className="files-empty" style={{ borderColor: p.ink }}>
-          <span className="files-empty-icon">📂</span>
-          <p>Nessun file ancora — aggiungili in <code>app.jsx</code> nell'array <code>FILES</code>.</p>
-        </div>
-      ) : (
+      <div
+        className={`upload-zone${dragging ? ' is-dragging' : ''}`}
+        style={{ borderColor: dragging ? p.terra : p.ink }}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files[0]); }}
+        onClick={() => inputRef.current?.click()}
+      >
+        <input ref={inputRef} type="file" style={{ display: 'none' }} onChange={(e) => pickFile(e.target.files[0])} />
+        <span className="upload-plus" style={{ background: p.terra, color: p.bg }}>+</span>
+        <span className="upload-label">Trascina un file o tocca per scegliere</span>
+        <span className="upload-sub">Biglietti PDF, foto, qualsiasi cosa</span>
+      </div>
+
+      {files.length > 0 && (
         <div className="files-grid">
-          {FILES.map((f, i) => (
-            <a
-              key={i}
-              href={f.url}
-              target="_blank"
-              rel="noopener noreferrer"
+          {files.map((f, i) => (
+            <div
+              key={f.id}
               className="file-card"
-              style={{ borderColor: p.ink, transform: tilt ? `rotate(${(i % 2 === 0 ? -0.5 : 0.5)}deg)` : "none" }}
+              style={{ borderColor: p.ink, transform: tilt ? `rotate(${i % 2 === 0 ? -0.5 : 0.5}deg)` : 'none' }}
+              onClick={() => openFile(f)}
             >
-              <div className="file-icon" style={{ background: p.terra, color: p.bg }}>{f.icon}</div>
+              <div className="file-icon" style={{ background: p.terra, color: p.bg }}>{fileTypeIcon(f.type)}</div>
               <div className="file-info">
-                <div className="file-title">{f.title}</div>
+                <div className="file-title">{f.name}</div>
                 {f.desc && <div className="file-desc">{f.desc}</div>}
               </div>
-              <div className="file-arrow" style={{ color: p.terra }}>↓</div>
-            </a>
+              <button className="file-del" style={{ color: p.ink }} onClick={(e) => removeFile(f.id, e)} aria-label="Rimuovi">✕</button>
+            </div>
           ))}
+        </div>
+      )}
+
+      {pending && (
+        <div className="modal-overlay" onClick={() => setPending(null)}>
+          <div className="modal" style={{ background: p.bg, color: p.ink, borderColor: p.ink }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon" style={{ background: p.terra, color: p.bg }}>{fileTypeIcon(pending.type)}</div>
+            <div className="modal-filename">{pending.name}</div>
+            <input
+              className="modal-input"
+              style={{ borderColor: p.ink, color: p.ink, background: 'transparent' }}
+              placeholder="Nome del file (es. Biglietto treno)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && confirmUpload()}
+            />
+            <input
+              className="modal-input"
+              style={{ borderColor: p.ink, color: p.ink, background: 'transparent' }}
+              placeholder="Note opzionali (es. Venerdì 15, ore 10:30)"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && confirmUpload()}
+            />
+            <div className="modal-actions">
+              <button className="modal-cancel" style={{ borderColor: p.ink, color: p.ink }} onClick={() => setPending(null)}>Annulla</button>
+              <button className="modal-confirm" style={{ background: p.terra, color: p.bg }} onClick={confirmUpload} disabled={!name.trim()}>Salva</button>
+            </div>
+          </div>
         </div>
       )}
     </section>

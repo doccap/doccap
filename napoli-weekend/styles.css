@@ -577,22 +577,45 @@ body {
 /* ============ FILES ============ */
 .files { padding-bottom: 80px; }
 
-.files-empty {
-  margin: 0 clamp(20px, 4vw, 56px);
+/* Upload zone */
+.upload-zone {
+  margin: 0 clamp(20px, 4vw, 56px) 32px;
   border: 2.5px dashed;
-  border-radius: 20px;
-  padding: 48px 32px;
-  text-align: center;
-  opacity: 0.5;
+  border-radius: 24px;
+  padding: 40px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
 }
-.files-empty-icon { font-size: 40px; }
-.files-empty p { font-size: 14px; line-height: 1.5; max-width: 36ch; }
-.files-empty code { font-family: "DM Mono", monospace; font-size: 12px; }
+.upload-zone:hover, .upload-zone.is-dragging {
+  background: rgba(0,0,0,0.03);
+}
+.upload-plus {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.upload-label {
+  font-family: "Fraunces", serif;
+  font-weight: 700;
+  font-size: clamp(18px, 2vw, 22px);
+  letter-spacing: -0.01em;
+}
+.upload-sub {
+  font-size: 13px;
+  opacity: 0.5;
+}
 
+/* File list */
 .files-grid {
   display: flex;
   flex-direction: column;
@@ -604,30 +627,25 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 16px 20px;
   border: 2.5px solid;
   border-radius: 18px;
-  text-decoration: none;
-  color: inherit;
+  cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .file-card:hover {
   transform: translate(-3px, -3px) rotate(0deg) !important;
   box-shadow: 6px 6px 0 currentColor;
 }
-
 .file-icon {
-  width: 52px;
-  height: 52px;
+  width: 52px; height: 52px;
   border-radius: 14px;
   display: grid;
   place-items: center;
   font-size: 24px;
   flex-shrink: 0;
 }
-
 .file-info { flex: 1; min-width: 0; }
-
 .file-title {
   font-family: "Fraunces", serif;
   font-weight: 700;
@@ -635,19 +653,74 @@ body {
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
-
-.file-desc {
-  font-size: 13px;
-  opacity: 0.65;
-  margin-top: 3px;
-}
-
-.file-arrow {
-  font-family: "Fraunces", serif;
-  font-size: 28px;
-  font-weight: 700;
+.file-desc { font-size: 13px; opacity: 0.6; margin-top: 3px; }
+.file-del {
+  appearance: none; border: 0; background: transparent;
+  font-size: 16px; opacity: 0.35; cursor: pointer; padding: 4px 8px;
   flex-shrink: 0;
+  transition: opacity 0.15s;
 }
+.file-del:hover { opacity: 0.8; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.45);
+  display: grid; place-items: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+.modal {
+  width: 100%; max-width: 400px;
+  border: 2.5px solid;
+  border-radius: 24px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 8px 8px 0 rgba(0,0,0,0.12);
+}
+.modal-icon {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  display: grid; place-items: center;
+  font-size: 28px;
+}
+.modal-filename {
+  font-size: 12px;
+  opacity: 0.4;
+  font-family: "DM Mono", monospace;
+  word-break: break-all;
+}
+.modal-input {
+  appearance: none;
+  width: 100%;
+  border: 2px solid;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  outline: none;
+}
+.modal-input::placeholder { opacity: 0.4; }
+.modal-input:focus { opacity: 1; }
+.modal-actions {
+  display: flex; gap: 10px; margin-top: 4px;
+}
+.modal-cancel, .modal-confirm {
+  appearance: none;
+  flex: 1;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.modal-cancel { background: transparent; border: 2px solid; }
+.modal-confirm { border: 0; }
+.modal-confirm:disabled { opacity: 0.35; cursor: default; }
 
 /* ============ FOOTER ============ */
 .footer {
