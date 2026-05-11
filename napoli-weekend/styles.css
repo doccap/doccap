@@ -574,6 +574,81 @@ body {
   opacity: 0.85;
 }
 
+/* ============ FILES ============ */
+.files { padding-bottom: 80px; }
+
+.files-empty {
+  margin: 0 clamp(20px, 4vw, 56px);
+  border: 2.5px dashed;
+  border-radius: 20px;
+  padding: 48px 32px;
+  text-align: center;
+  opacity: 0.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.files-empty-icon { font-size: 40px; }
+.files-empty p { font-size: 14px; line-height: 1.5; max-width: 36ch; }
+.files-empty code { font-family: "DM Mono", monospace; font-size: 12px; }
+
+.files-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 clamp(20px, 4vw, 56px);
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 2.5px solid;
+  border-radius: 18px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.file-card:hover {
+  transform: translate(-3px, -3px) rotate(0deg) !important;
+  box-shadow: 6px 6px 0 currentColor;
+}
+
+.file-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.file-info { flex: 1; min-width: 0; }
+
+.file-title {
+  font-family: "Fraunces", serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.file-desc {
+  font-size: 13px;
+  opacity: 0.65;
+  margin-top: 3px;
+}
+
+.file-arrow {
+  font-family: "Fraunces", serif;
+  font-size: 28px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 /* ============ FOOTER ============ */
 .footer {
   padding: 64px clamp(20px, 4vw, 56px);

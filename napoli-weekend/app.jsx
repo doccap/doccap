@@ -105,6 +105,11 @@ const TIPS = [
   { icon: "📍", title: "Base perfetta", body: "Via Sant'Anna dei Lombardi è nel cuore del centro storico — tutto è raggiungibile a piedi." },
 ];
 
+const FILES = [
+  // Aggiungi qui i tuoi file: { icon, title, desc, url }
+  // Esempio: { icon: "🎟", title: "Biglietto Napoli Sotterranea", desc: "Prenotazione giovedì 19:00", url: "files/napoli-sotterranea.pdf" },
+];
+
 /* ---------- Tweaks ---------- */
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "palette": "vesuvio",
@@ -360,6 +365,50 @@ function TipsSection({ p, tilt }) {
   );
 }
 
+/* ---------- FILES ---------- */
+function FilesSection({ p, tilt }) {
+  const empty = FILES.length === 0;
+  return (
+    <section className="files" style={{ background: p.bg, color: p.ink }}>
+      <div className="section-head">
+        <div className="section-num" style={{ color: p.terra }}>04</div>
+        <h2 className="section-title">
+          <span style={{ background: p.terra, color: p.bg }}>File</span>{" "}
+          <span style={{ fontStyle: "italic" }}>utili</span>
+        </h2>
+        <p className="section-sub">biglietti, prenotazioni, documenti</p>
+      </div>
+
+      {empty ? (
+        <div className="files-empty" style={{ borderColor: p.ink }}>
+          <span className="files-empty-icon">📂</span>
+          <p>Nessun file ancora — aggiungili in <code>app.jsx</code> nell'array <code>FILES</code>.</p>
+        </div>
+      ) : (
+        <div className="files-grid">
+          {FILES.map((f, i) => (
+            <a
+              key={i}
+              href={f.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="file-card"
+              style={{ borderColor: p.ink, transform: tilt ? `rotate(${(i % 2 === 0 ? -0.5 : 0.5)}deg)` : "none" }}
+            >
+              <div className="file-icon" style={{ background: p.terra, color: p.bg }}>{f.icon}</div>
+              <div className="file-info">
+                <div className="file-title">{f.title}</div>
+                {f.desc && <div className="file-desc">{f.desc}</div>}
+              </div>
+              <div className="file-arrow" style={{ color: p.terra }}>↓</div>
+            </a>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 /* ---------- FOOTER ---------- */
 function Footer({ p }) {
   return (
@@ -393,6 +442,7 @@ function App() {
       <Marquee text="fame · vista · sole · sampietrini · mare · caffè · sfogliatella · vesuvio" color={p.blue} ink={p.bg} />
       <FoodSection p={p} tilt={tweaks.tilt} />
       <TipsSection p={p} tilt={tweaks.tilt} />
+      <FilesSection p={p} tilt={tweaks.tilt} />
       <Footer p={p} />
 
       <TweaksPanel title="Tweaks">
