@@ -722,6 +722,30 @@ body {
 .modal-confirm { border: 0; }
 .modal-confirm:disabled { opacity: 0.35; cursor: default; }
 
+/* Supabase setup */
+.sb-setup {
+  margin: 0 clamp(20px, 4vw, 56px);
+  border: 2.5px dashed;
+  border-radius: 24px;
+  padding: 36px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sb-setup-icon { font-size: 32px; }
+.sb-setup-title { font-weight: 700; font-size: 22px; letter-spacing: -0.02em; }
+.sb-setup-sub { font-size: 14px; opacity: 0.55; line-height: 1.5; margin-bottom: 4px; }
+
+/* Loading */
+.files-loading {
+  padding: 24px clamp(20px, 4vw, 56px);
+  font-family: "DM Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
 /* ============ FOOTER ============ */
 .footer {
   padding: 64px clamp(20px, 4vw, 56px);
