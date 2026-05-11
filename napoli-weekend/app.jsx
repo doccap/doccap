@@ -107,13 +107,12 @@ const TIPS = [
 
 /* ---------- FILES — Supabase ---------- */
 const BUCKET = 'napoli-files';
+const SB = supabase.createClient(
+  'https://ynjkmfgtqtdmlaaaerhv.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluamttZmd0cXRkbWxhYWFlcmh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MTUyODQsImV4cCI6MjA5NDA5MTI4NH0.Y9LJO944m_9_vtViM9we0le8LssbCCtTigWeew9Aez8'
+);
 
-function getSB() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (!url || !key) return null;
-  return supabase.createClient(url, key);
-}
+function getSB() { return SB; }
 
 async function sbUpload(file, name, desc) {
   const sb = getSB();
@@ -410,9 +409,6 @@ function TipsSection({ p, tilt }) {
 
 /* ---------- FILES ---------- */
 function FilesSection({ p, tilt }) {
-  const [configured, setConfigured] = useState(!!getSB());
-  const [sbUrl, setSbUrl] = useState('');
-  const [sbKey, setSbKey] = useState('');
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(null);
@@ -422,19 +418,12 @@ function FilesSection({ p, tilt }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
 
-  useEffect(() => { if (configured) loadFiles(); }, [configured]);
+  useEffect(() => { loadFiles(); }, []);
 
   async function loadFiles() {
     setLoading(true);
     try { setFiles(await sbList()); } catch (e) {}
     setLoading(false);
-  }
-
-  function saveConfig() {
-    if (!sbUrl.trim() || !sbKey.trim()) return;
-    localStorage.setItem('sb_url', sbUrl.trim());
-    localStorage.setItem('sb_key', sbKey.trim());
-    setConfigured(true);
   }
 
   function pickFile(file) {
@@ -477,34 +466,7 @@ function FilesSection({ p, tilt }) {
         <p className="section-sub">biglietti, prenotazioni, documenti</p>
       </div>
 
-      {!configured ? (
-        <div className="sb-setup" style={{ borderColor: p.ink }}>
-          <div className="sb-setup-icon">🔗</div>
-          <div className="sb-setup-title" style={{ fontFamily: '"Fraunces", serif' }}>Connetti Supabase</div>
-          <div className="sb-setup-sub">Inserisci le credenziali del tuo progetto per condividere i file tra tutti i dispositivi.</div>
-          <input
-            className="modal-input"
-            style={{ borderColor: p.ink, color: p.ink, background: 'transparent' }}
-            placeholder="Project URL  (https://xxxx.supabase.co)"
-            value={sbUrl}
-            onChange={(e) => setSbUrl(e.target.value)}
-          />
-          <input
-            className="modal-input"
-            style={{ borderColor: p.ink, color: p.ink, background: 'transparent' }}
-            placeholder="Anon public key"
-            value={sbKey}
-            onChange={(e) => setSbKey(e.target.value)}
-          />
-          <button
-            className="modal-confirm"
-            style={{ background: p.terra, color: p.bg, width: '100%' }}
-            onClick={saveConfig}
-            disabled={!sbUrl.trim() || !sbKey.trim()}
-          >Salva e connetti</button>
-        </div>
-      ) : (
-        <>
+      <>
           <div
             className={`upload-zone${dragging ? ' is-dragging' : ''}`}
             style={{ borderColor: dragging ? p.terra : p.ink }}
@@ -544,8 +506,7 @@ function FilesSection({ p, tilt }) {
               })}
             </div>
           )}
-        </>
-      )}
+      </>
 
       {pending && (
         <div className="modal-overlay" onClick={() => setPending(null)}>
