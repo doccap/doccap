@@ -1,0 +1,13 @@
+name: inutilpedia-daily
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # 09:00 Europe/Rome
+  workflow_dispatch:
+
+jobs:
+  call:
+    uses: ./.github/workflows/inutilpedia-run.yml
+    with:
+      mode: daily
+    secrets: inherit
