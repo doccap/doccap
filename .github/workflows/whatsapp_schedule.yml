@@ -24,4 +24,5 @@ jobs:
           ULTRAMSG_TOKEN: ${{ secrets.ULTRAMSG_TOKEN }}
           WHATSAPP_RECIPIENT: ${{ secrets.WHATSAPP_RECIPIENT }}
           WHATSAPP_MESSAGE: ${{ secrets.WHATSAPP_MESSAGE }}
+        working-directory: whatsapp
         run: python send_whatsapp.py
