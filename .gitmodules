@@ -1,0 +1,9 @@
+[submodule "antonio-capone-site"]
+	path = antonio-capone-site
+	url = https://github.com/doccap/antonio-capone-site
+[submodule "doccap-editor"]
+	path = doccap-editor
+	url = https://github.com/doccap/doccap-editor
+[submodule "iudu"]
+	path = iudu
+	url = https://github.com/doccap/iudu
