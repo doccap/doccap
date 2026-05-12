@@ -41,6 +41,7 @@ const ITINERARY = [
     icon: "🚂",
     accent: "red",
     short: "Arrivo",
+    weather: { icon: "🌤", temp: "20°C", desc: "Parzialmente nuvoloso" },
     items: [
       { t: "15:00", title: "Doc + Sorella arrivano", body: "Check-in in via Sant'Anna dei Lombardi, sistemate e prime passeggiate nel centro storico.", tags: ["🚶 passeggiata"] },
       { t: "16:00", title: "Paola arriva 🎉", body: "Si comincia davvero! Tutti e tre insieme.", tags: [] },
@@ -55,6 +56,7 @@ const ITINERARY = [
     icon: "☀️",
     accent: "yellow",
     short: "Centro",
+    weather: { icon: "☀️", temp: "23°C", desc: "Soleggiato" },
     items: [
       { t: "mattina", title: "Centro storico & Cappella Sansevero", body: "Il Cristo Velato è imperdibile. Da prenotare prima! Poi il Duomo e i vicoli dei Decumani.", tags: ["🏛 cultura"] },
       { t: "pranzo", title: "Street food ai Quartieri Spagnoli", body: "Pizza fritta, cuoppo di frittura, sfogliatella calda. Mangiare camminando è d'obbligo.", tags: ["🍕 street food"] },
@@ -69,6 +71,7 @@ const ITINERARY = [
     icon: "🌊",
     accent: "blue",
     short: "Mare",
+    weather: { icon: "🌞", temp: "25°C", desc: "Caldo e soleggiato" },
     items: [
       { t: "mattina", title: "Castel dell'Ovo & Lungomare", body: "Il castello sul mare, la passeggiata da cartolina. Foto obbligatorie.", tags: ["🏰 castello", "🌊 lungomare"] },
       { t: "pranzo", title: "Frittura di pesce a Mergellina", body: "Cuoppo di mare sul porto, gelato di Mergellina per finire.", tags: ["🐟 pesce"] },
@@ -83,6 +86,7 @@ const ITINERARY = [
     icon: "👋",
     accent: "terra",
     short: "Rientro",
+    weather: { icon: "🌤", temp: "22°C", desc: "Qualche nuvola" },
     items: [
       { t: "mattina", title: "Colazione con sfogliatella", body: "Sfogliatella riccia calda e caffè napoletano al bar. Il modo migliore per salutare Napoli.", tags: ["☕ colazione"] },
       { t: "12:15", title: "Si parte 👋", body: "Ci si rivede alla prossima avventura!", tags: [] },
@@ -295,6 +299,7 @@ function Itinerary({ p, tilt }) {
             <span className="dt-day">{d.date.split(" ")[0]}</span>
             <span className="dt-date">{d.date.split(" ").slice(1).join(" ")}</span>
             <span className="dt-pin">{d.short}</span>
+            <span className="dt-weather">{d.weather.icon} {d.weather.temp}</span>
           </button>
         ))}
       </div>
@@ -307,6 +312,11 @@ function Itinerary({ p, tilt }) {
           <div>
             <div className="day-title">{day.date}</div>
             {day.sub && <div className="day-sub">— {day.sub}</div>}
+          </div>
+          <div className="day-weather-pill" style={{ borderColor: accentColor, color: accentColor }}>
+            <span className="dwp-icon">{day.weather.icon}</span>
+            <span className="dwp-temp">{day.weather.temp}</span>
+            <span className="dwp-desc">{day.weather.desc}</span>
           </div>
         </div>
 
