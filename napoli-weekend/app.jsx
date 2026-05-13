@@ -44,7 +44,7 @@ const ITINERARY = [
     items: [
       { t: "15:00", title: "Doc + Sorella arrivano", body: "Check-in in via Sant'Anna dei Lombardi, sistemate e prime passeggiate nel centro storico.", tags: ["🚶 passeggiata"] },
       { t: "16:00", title: "Paola arriva 🎉", body: "Si comincia davvero! Tutti e tre insieme.", tags: [] },
-      { t: "18:00", title: "Napoli Sotterranea 🕳️", body: "Visita guidata nelle gallerie sotterranee della città: acquedotti romani, cunicoli, storia nascosta.", tags: ["🏛 cultura"] },
+      { t: "18:00", title: "Napoli Sotterranea 🕳️", body: "Visita guidata nelle gallerie sotterranee della città: acquedotti romani, cunicoli, storia nascosta.", tags: ["🏛 cultura", "✅ biglietto già preso"] },
       { t: "sera", title: "Prima pizza napoletana", body: "Spaccanapoli, orientarsi nel centro, cena in una delle pizzerie storiche del quartiere.", tags: ["🍕 cibo", "🚶 centro storico"] },
     ],
   },
@@ -289,6 +289,25 @@ function Hero({ p, tilt, stickers }) {
 /* ---------- ITINERARY ---------- */
 function Itinerary({ p, tilt, weather }) {
   const [active, setActive] = useState(0);
+  const [plan, setPlan] = useState("a");
+  const touchStartX = useRef(null);
+
+  function handleDayChange(i) {
+    setActive(i);
+    setPlan("a");
+  }
+
+  function onTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function onTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (dx < -60 && plan === "a") setPlan("b");
+    else if (dx > 60 && plan === "b") setPlan("a");
+    touchStartX.current = null;
+  }
 
   function getDaySummary(dayIdx) {
     if (!weather) return null;
@@ -313,6 +332,7 @@ function Itinerary({ p, tilt, weather }) {
   }
 
   const day = ITINERARY[active];
+  const planBDay = PLAN_B[active];
   const accentColor = p[day.accent];
 
   return (
@@ -332,7 +352,7 @@ function Itinerary({ p, tilt, weather }) {
             <button
               key={d.id}
               className={`day-tab ${i === active ? "is-active" : ""}`}
-              onClick={() => setActive(i)}
+              onClick={() => handleDayChange(i)}
               style={{
                 "--accent": p[d.accent],
                 "--ink": p.ink,
@@ -350,7 +370,12 @@ function Itinerary({ p, tilt, weather }) {
         })}
       </div>
 
-      <div className="day-content" key={day.id}>
+      <div
+        className="day-content"
+        key={day.id}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <div className="day-header" style={{ borderColor: p.ink }}>
           <div className="day-emoji" style={{ background: accentColor, color: p.bg }}>
             {day.icon}
@@ -367,38 +392,103 @@ function Itinerary({ p, tilt, weather }) {
           ); })()}
         </div>
 
-        <div className="timeline">
-          {day.items.map((it, i) => {
-            const wx = getItemWeather(active, it.t);
-            return (
-              <div className="t-row" key={i}>
-                <div className="t-time" style={{ color: accentColor }}>
-                  <span>{it.t}</span>
-                  {wx && (
-                    <span className="t-wx">
-                      {wmoEmoji(wx.code)} {wx.temp}°
-                      {wx.precip > 0 && <span style={{ opacity: 0.65 }}> · 💧{wx.precip}%</span>}
-                    </span>
-                  )}
+        {/* Piano A / Piano B switcher */}
+        <div className="plan-switch">
+          <button
+            className={`plan-sw-btn${plan === "a" ? " is-on" : ""}`}
+            style={{
+              background: plan === "a" ? accentColor : "transparent",
+              color: plan === "a" ? p.bg : p.ink,
+              borderColor: plan === "a" ? accentColor : p.ink,
+            }}
+            onClick={() => setPlan("a")}
+          >
+            Piano A
+          </button>
+          <button
+            className={`plan-sw-btn${plan === "b" ? " is-on" : ""}`}
+            style={{
+              background: plan === "b" ? accentColor : "transparent",
+              color: plan === "b" ? p.bg : p.ink,
+              borderColor: plan === "b" ? accentColor : p.ink,
+            }}
+            onClick={() => setPlan("b")}
+          >
+            ☔ Piano B
+          </button>
+          <button
+            className={`plan-arrow-btn${plan === "b" ? " is-left" : ""}`}
+            style={{ color: accentColor, borderColor: accentColor }}
+            onClick={() => setPlan(plan === "a" ? "b" : "a")}
+            aria-label={plan === "a" ? "Vai al Piano B" : "Torna al Piano A"}
+          >
+            {plan === "a" ? "→" : "←"}
+          </button>
+        </div>
+
+        {/* Timeline */}
+        <div className="timeline" key={plan}>
+          {plan === "a" ? (
+            day.items.map((it, i) => {
+              const wx = getItemWeather(active, it.t);
+              return (
+                <div className="t-row" key={i}>
+                  <div className="t-time" style={{ color: accentColor }}>
+                    <span>{it.t}</span>
+                    {wx && (
+                      <span className="t-wx">
+                        {wmoEmoji(wx.code)} {wx.temp}°
+                        {wx.precip > 0 && <span style={{ opacity: 0.65 }}> · 💧{wx.precip}%</span>}
+                      </span>
+                    )}
+                  </div>
+                  <div className="t-dot-wrap">
+                    <div className="t-line" style={{ background: p.ink }}></div>
+                    <div className="t-dot" style={{ background: accentColor, borderColor: p.ink }}></div>
+                  </div>
+                  <div className="t-body">
+                    <h3 className="t-title">{it.title}</h3>
+                    <p className="t-text">{it.body}</p>
+                    {it.tags.length > 0 && (
+                      <div className="t-tags">
+                        {it.tags.map((tag, j) => (
+                          <span key={j} className="t-tag" style={{ borderColor: p.ink }}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="t-dot-wrap">
-                  <div className="t-line" style={{ background: p.ink }}></div>
-                  <div className="t-dot" style={{ background: accentColor, borderColor: p.ink }}></div>
-                </div>
-                <div className="t-body">
-                  <h3 className="t-title">{it.title}</h3>
-                  <p className="t-text">{it.body}</p>
-                  {it.tags.length > 0 && (
-                    <div className="t-tags">
-                      {it.tags.map((tag, j) => (
-                        <span key={j} className="t-tag" style={{ borderColor: p.ink }}>{tag}</span>
-                      ))}
+              );
+            })
+          ) : (
+            planBDay.items.map((item, i) => {
+              const wx = getItemWeather(active, item.t);
+              return (
+                <div className="t-row" key={i}>
+                  <div className="t-time" style={{ color: accentColor }}>
+                    <span>{item.t}</span>
+                    {wx && (
+                      <span className="t-wx">
+                        {wmoEmoji(wx.code)} {wx.temp}°
+                        {wx.precip > 0 && <span style={{ opacity: 0.65 }}> · 💧{wx.precip}%</span>}
+                      </span>
+                    )}
+                  </div>
+                  <div className="t-dot-wrap">
+                    <div className="t-line" style={{ background: p.ink }}></div>
+                    <div className="t-dot" style={{ background: accentColor, borderColor: p.ink }}></div>
+                  </div>
+                  <div className="t-body">
+                    <div className="planb-item-head">
+                      <span className="planb-icon-sm" style={{ background: accentColor, color: p.bg }}>{item.icon}</span>
+                      <h3 className="t-title">{item.title}</h3>
                     </div>
-                  )}
+                    <p className="t-text">{item.body}</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </section>
@@ -523,7 +613,7 @@ function FilesSection({ p, tilt }) {
   return (
     <section className="files" style={{ background: p.bg, color: p.ink }}>
       <div className="section-head">
-        <div className="section-num" style={{ color: p.terra }}>05</div>
+        <div className="section-num" style={{ color: p.terra }}>04</div>
         <h2 className="section-title">
           <span style={{ background: p.terra, color: p.bg }}>File</span>{' '}
           <span style={{ fontStyle: 'italic' }}>utili</span>
@@ -784,7 +874,6 @@ function App() {
       <Marquee text="fame · vista · sole · sampietrini · mare · caffè · sfogliatella · vesuvio" color={p.blue} ink={p.bg} />
       <FoodSection p={p} tilt={tweaks.tilt} />
       <TipsSection p={p} tilt={tweaks.tilt} />
-      <PlanBSection p={p} tilt={tweaks.tilt} weather={weather} />
       <FilesSection p={p} tilt={tweaks.tilt} />
       <Footer p={p} />
 
