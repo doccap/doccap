@@ -629,34 +629,34 @@ const PLAN_B = [
   {
     id: "gio",
     items: [
-      { icon: "🏛", title: "Museo Nazionale (MANN)", body: "Il più grande museo archeologico d'Europa. Mosaici di Pompei, sculture greche, collezione Farnese — ore e ore garantite." },
-      { icon: "⛪", title: "Chiese di Spaccanapoli", body: "San Domenico Maggiore, Santa Chiara, Gesù Nuovo — tutte coperte, tutte a pochi passi, tutte straordinarie." },
-      { icon: "☕", title: "Bar storici del centro", body: "Gambrinus, Scaturchio, Attanasio — un caffè lungo e una sfogliatella mentre aspettate che smetta." },
+      { t: "16:00", icon: "🏛", title: "Museo Nazionale (MANN)", body: "Il più grande museo archeologico d'Europa. Mosaici di Pompei, sculture greche, collezione Farnese — ore e ore garantite." },
+      { t: "18:00", icon: "⛪", title: "Chiese di Spaccanapoli", body: "San Domenico Maggiore, Santa Chiara, Gesù Nuovo — tutte coperte, tutte a pochi passi, tutte straordinarie." },
+      { t: "sera", icon: "☕", title: "Bar storici del centro", body: "Gambrinus, Scaturchio, Attanasio — un caffè lungo e una sfogliatella mentre aspettate che smetta." },
     ],
   },
   {
     id: "ven",
     items: [
-      { icon: "👑", title: "Palazzo Reale", body: "Gli appartamenti borbonici con vista su Piazza del Plebiscito. Perfetto da visitare al coperto." },
-      { icon: "🛍", title: "Galleria Umberto I", body: "La galleria ottocentesca coperta — shopping e architettura sotto un'unica cupola di vetro." },
-      { icon: "📚", title: "Libreria Guida", body: "La libreria storica di Napoli nel cuore del centro — rifugio perfetto con caffè in mano." },
-      { icon: "🎨", title: "Pio Monte della Misericordia", body: "Un Caravaggio originale a due passi dal Duomo, in un oratorio del '600. Pochi lo sanno." },
+      { t: "mattina", icon: "🎨", title: "Pio Monte della Misericordia", body: "Un Caravaggio originale a due passi dal Duomo, in un oratorio del '600. Pochi lo sanno." },
+      { t: "pranzo", icon: "👑", title: "Palazzo Reale", body: "Gli appartamenti borbonici con vista su Piazza del Plebiscito. Perfetto da visitare al coperto." },
+      { t: "pomeriggio", icon: "🛍", title: "Galleria Umberto I", body: "La galleria ottocentesca coperta — shopping e architettura sotto un'unica cupola di vetro." },
+      { t: "sera", icon: "📚", title: "Libreria Guida + aperitivo", body: "La libreria storica di Napoli nel cuore del centro, poi un aperitivo nei vicoli." },
     ],
   },
   {
     id: "sab",
     items: [
-      { icon: "🎭", title: "Teatro San Carlo", body: "Il teatro lirico più antico d'Europa ancora in attività. Visita guidata o, se c'è uno spettacolo, esperienza unica." },
-      { icon: "🏛", title: "MANN (se non visto giovedì)", body: "Giornata intera al Museo Nazionale senza fretta — con la pioggia fuori è ancora meglio." },
-      { icon: "🛍", title: "Via Toledo & shopping", body: "La via principale coperta dai portici — animata pioggia o sole, mille negozi e street food." },
-      { icon: "🍷", title: "Enoteca nel centro storico", body: "Vino campano, salumi, formaggi locali — un pomeriggio piovoso è il pretesto perfetto." },
+      { t: "mattina", icon: "🏛", title: "MANN (se non visto giovedì)", body: "Giornata intera al Museo Nazionale senza fretta — con la pioggia fuori è ancora meglio." },
+      { t: "pranzo", icon: "🎭", title: "Teatro San Carlo", body: "Visita guidata al teatro lirico più antico d'Europa ancora in attività. Prenotare online." },
+      { t: "pomeriggio", icon: "🛍", title: "Via Toledo & shopping", body: "La via principale coperta dai portici — animata pioggia o sole, mille negozi e street food." },
+      { t: "sera", icon: "🍷", title: "Enoteca nel centro storico", body: "Vino campano, salumi, formaggi locali — un pomeriggio piovoso è il pretesto perfetto." },
     ],
   },
   {
     id: "dom",
     items: [
-      { icon: "☕", title: "Gran Caffè Gambrinus", body: "Il bar storico di Napoli in Piazza del Plebiscito. Sfogliatella e cappuccino nell'art nouveau prima di partire." },
-      { icon: "🏛", title: "Museo di Capodimonte", body: "Solo se il treno è nel pomeriggio — Caravaggio, Tiziano, Raffaello su una collina sopra la città." },
+      { t: "mattina", icon: "☕", title: "Gran Caffè Gambrinus", body: "Il bar storico di Napoli in Piazza del Plebiscito. Sfogliatella e cappuccino nell'art nouveau prima di partire." },
+      { t: "11:00", icon: "🏛", title: "Museo di Capodimonte", body: "Solo se il treno è nel pomeriggio — Caravaggio, Tiziano, Raffaello su una collina sopra la città." },
     ],
   },
 ];
@@ -673,6 +673,18 @@ function PlanBSection({ p, tilt, weather }) {
       if (v > max) max = v;
     }
     return max;
+  }
+
+  function getItemWeather(dayIdx, t) {
+    if (!weather) return null;
+    const hour = timeToHour(t);
+    if (hour === null) return null;
+    const idx = dayIdx * 24 + hour;
+    return {
+      code: weather.hourly.weathercode[idx],
+      temp: Math.round(weather.hourly.temperature_2m[idx]),
+      precip: weather.hourly.precipitation_probability[idx],
+    };
   }
 
   const accentColors = [p.red, p.yellow, p.blue, p.terra];
@@ -718,21 +730,34 @@ function PlanBSection({ p, tilt, weather }) {
         })}
       </div>
 
-      <div className="planb-grid" key={active}>
-        {items.map((item, i) => (
-          <div
-            key={i}
-            className="planb-card"
-            style={{
-              borderColor: p.bg,
-              transform: tilt ? `rotate(${(i % 2 === 0 ? -0.6 : 0.6)}deg)` : 'none',
-            }}
-          >
-            <div className="planb-icon" style={{ background: accent, color: p.bg }}>{item.icon}</div>
-            <h3 className="planb-title" style={{ color: p.bg }}>{item.title}</h3>
-            <p className="planb-body">{item.body}</p>
-          </div>
-        ))}
+      <div className="planb-timeline" key={active}>
+        {items.map((item, i) => {
+          const wx = getItemWeather(active, item.t);
+          return (
+            <div className="t-row" key={i}>
+              <div className="t-time" style={{ color: accent }}>
+                <span>{item.t}</span>
+                {wx && (
+                  <span className="t-wx">
+                    {wmoEmoji(wx.code)} {wx.temp}°
+                    {wx.precip > 0 && <span style={{ opacity: 0.65 }}> · 💧{wx.precip}%</span>}
+                  </span>
+                )}
+              </div>
+              <div className="t-dot-wrap">
+                <div className="t-line" style={{ background: p.bg, opacity: 0.2 }}></div>
+                <div className="t-dot" style={{ background: accent, borderColor: p.bg }}></div>
+              </div>
+              <div className="t-body">
+                <div className="planb-item-head">
+                  <span className="planb-icon-sm" style={{ background: accent, color: p.bg }}>{item.icon}</span>
+                  <h3 className="t-title" style={{ color: p.bg }}>{item.title}</h3>
+                </div>
+                <p className="t-text" style={{ color: p.bg, opacity: 0.7 }}>{item.body}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

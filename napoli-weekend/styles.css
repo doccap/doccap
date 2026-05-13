@@ -623,46 +623,28 @@ body {
   background: transparent !important;
 }
 
-.planb-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+.planb-timeline {
   padding: 0 clamp(20px, 4vw, 56px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 900px;
   animation: fadeIn 0.4s ease;
 }
 
-.planb-card {
-  border: 2px solid;
-  border-radius: 22px;
-  padding: 24px;
+.planb-item-head {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
 }
-.planb-card:hover {
-  transform: translate(-3px, -3px) rotate(0deg) !important;
-  box-shadow: 6px 6px 0 rgba(255,255,255,0.15);
-}
-.planb-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
+.planb-icon-sm {
+  width: 36px; height: 36px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  font-size: 26px;
+  font-size: 18px;
   flex-shrink: 0;
-}
-.planb-title {
-  font-family: "Fraunces", serif;
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-.planb-body {
-  font-size: 14px;
-  line-height: 1.5;
-  opacity: 0.75;
 }
 
 /* ============ FILES ============ */
