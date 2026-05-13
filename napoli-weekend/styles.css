@@ -346,6 +346,45 @@ body {
   opacity: 0.85;
 }
 
+/* Plan switcher */
+.plan-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+.plan-sw-btn {
+  appearance: none;
+  border: 2px solid;
+  border-radius: 999px;
+  padding: 9px 22px;
+  font-family: "Fraunces", serif;
+  font-weight: 700;
+  font-size: clamp(15px, 1.4vw, 18px);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.plan-arrow-btn {
+  appearance: none;
+  border: 2px solid;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  background: transparent;
+  margin-left: auto;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.plan-arrow-btn:hover { transform: translateX(4px); }
+.plan-arrow-btn.is-left:hover { transform: translateX(-4px); }
+
 /* Day content */
 .day-content {
   padding: 0 clamp(20px, 4vw, 56px);
