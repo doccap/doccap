@@ -287,16 +287,8 @@ function Hero({ p, tilt, stickers }) {
 }
 
 /* ---------- ITINERARY ---------- */
-function Itinerary({ p, tilt }) {
+function Itinerary({ p, tilt, weather }) {
   const [active, setActive] = useState(0);
-  const [weather, setWeather] = useState(null);
-
-  useEffect(() => {
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=40.8518&longitude=14.2681&hourly=temperature_2m,precipitation_probability,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome&start_date=2026-05-14&end_date=2026-05-17')
-      .then(r => r.json())
-      .then(setWeather)
-      .catch(() => {});
-  }, []);
 
   function getDaySummary(dayIdx) {
     if (!weather) return null;
@@ -531,7 +523,7 @@ function FilesSection({ p, tilt }) {
   return (
     <section className="files" style={{ background: p.bg, color: p.ink }}>
       <div className="section-head">
-        <div className="section-num" style={{ color: p.terra }}>04</div>
+        <div className="section-num" style={{ color: p.terra }}>05</div>
         <h2 className="section-title">
           <span style={{ background: p.terra, color: p.bg }}>File</span>{' '}
           <span style={{ fontStyle: 'italic' }}>utili</span>
@@ -632,19 +624,142 @@ function Footer({ p }) {
   );
 }
 
+/* ---------- PLAN B ---------- */
+const PLAN_B = [
+  {
+    id: "gio",
+    items: [
+      { icon: "🏛", title: "Museo Nazionale (MANN)", body: "Il più grande museo archeologico d'Europa. Mosaici di Pompei, sculture greche, collezione Farnese — ore e ore garantite." },
+      { icon: "⛪", title: "Chiese di Spaccanapoli", body: "San Domenico Maggiore, Santa Chiara, Gesù Nuovo — tutte coperte, tutte a pochi passi, tutte straordinarie." },
+      { icon: "☕", title: "Bar storici del centro", body: "Gambrinus, Scaturchio, Attanasio — un caffè lungo e una sfogliatella mentre aspettate che smetta." },
+    ],
+  },
+  {
+    id: "ven",
+    items: [
+      { icon: "👑", title: "Palazzo Reale", body: "Gli appartamenti borbonici con vista su Piazza del Plebiscito. Perfetto da visitare al coperto." },
+      { icon: "🛍", title: "Galleria Umberto I", body: "La galleria ottocentesca coperta — shopping e architettura sotto un'unica cupola di vetro." },
+      { icon: "📚", title: "Libreria Guida", body: "La libreria storica di Napoli nel cuore del centro — rifugio perfetto con caffè in mano." },
+      { icon: "🎨", title: "Pio Monte della Misericordia", body: "Un Caravaggio originale a due passi dal Duomo, in un oratorio del '600. Pochi lo sanno." },
+    ],
+  },
+  {
+    id: "sab",
+    items: [
+      { icon: "🎭", title: "Teatro San Carlo", body: "Il teatro lirico più antico d'Europa ancora in attività. Visita guidata o, se c'è uno spettacolo, esperienza unica." },
+      { icon: "🏛", title: "MANN (se non visto giovedì)", body: "Giornata intera al Museo Nazionale senza fretta — con la pioggia fuori è ancora meglio." },
+      { icon: "🛍", title: "Via Toledo & shopping", body: "La via principale coperta dai portici — animata pioggia o sole, mille negozi e street food." },
+      { icon: "🍷", title: "Enoteca nel centro storico", body: "Vino campano, salumi, formaggi locali — un pomeriggio piovoso è il pretesto perfetto." },
+    ],
+  },
+  {
+    id: "dom",
+    items: [
+      { icon: "☕", title: "Gran Caffè Gambrinus", body: "Il bar storico di Napoli in Piazza del Plebiscito. Sfogliatella e cappuccino nell'art nouveau prima di partire." },
+      { icon: "🏛", title: "Museo di Capodimonte", body: "Solo se il treno è nel pomeriggio — Caravaggio, Tiziano, Raffaello su una collina sopra la città." },
+    ],
+  },
+];
+
+function PlanBSection({ p, tilt, weather }) {
+  const [active, setActive] = useState(0);
+
+  function getDayRainRisk(dayIdx) {
+    if (!weather) return null;
+    const base = dayIdx * 24;
+    let max = 0;
+    for (let h = 9; h <= 21; h++) {
+      const v = weather.hourly.precipitation_probability[base + h] || 0;
+      if (v > max) max = v;
+    }
+    return max;
+  }
+
+  const accentColors = [p.red, p.yellow, p.blue, p.terra];
+  const accent = accentColors[active];
+  const items = PLAN_B[active].items;
+
+  return (
+    <section className="planb" style={{ background: p.ink, color: p.bg }}>
+      <div className="section-head dark">
+        <div className="section-num" style={{ color: p.terra }}>04</div>
+        <h2 className="section-title">
+          <span style={{ background: p.terra, color: p.bg }}>Piano B</span>
+          <br />
+          <span style={{ color: p.bg, fontStyle: 'italic' }}>se piove</span>
+        </h2>
+        <p className="section-sub" style={{ color: p.bg, opacity: 0.7 }}>alternative al coperto, giorno per giorno</p>
+      </div>
+
+      <div className="day-tabs">
+        {ITINERARY.map((d, i) => {
+          const risk = getDayRainRisk(i);
+          const riskHigh = risk !== null && risk >= 40;
+          return (
+            <button
+              key={d.id}
+              className={`day-tab ${i === active ? 'is-active' : ''}`}
+              onClick={() => setActive(i)}
+              style={{
+                '--accent': accentColors[i],
+                '--ink': p.bg,
+                '--bg': p.ink,
+                transform: tilt ? `rotate(${(i - 1.5) * 1.2}deg)` : 'none',
+              }}
+            >
+              <span className="dt-icon">{riskHigh ? '🌧' : d.icon}</span>
+              <span className="dt-day">{d.date.split(' ')[0]}</span>
+              <span className="dt-date">{d.date.split(' ').slice(1).join(' ')}</span>
+              <span className="dt-pin">
+                {risk !== null ? `💧 ${risk}%` : d.short}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="planb-grid" key={active}>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="planb-card"
+            style={{
+              borderColor: p.bg,
+              transform: tilt ? `rotate(${(i % 2 === 0 ? -0.6 : 0.6)}deg)` : 'none',
+            }}
+          >
+            <div className="planb-icon" style={{ background: accent, color: p.bg }}>{item.icon}</div>
+            <h3 className="planb-title" style={{ color: p.bg }}>{item.title}</h3>
+            <p className="planb-body">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ---------- APP ---------- */
 function App() {
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [weather, setWeather] = useState(null);
   const p = PALETTES[tweaks.palette] || PALETTES.vesuvio;
+
+  useEffect(() => {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=40.8518&longitude=14.2681&hourly=temperature_2m,precipitation_probability,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome&start_date=2026-05-14&end_date=2026-05-17')
+      .then(r => r.json())
+      .then(setWeather)
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="page" style={{ background: p.bg, color: p.ink, "--ink": p.ink, "--bg": p.bg, "--red": p.red, "--blue": p.blue, "--yellow": p.yellow, "--terra": p.terra, "--green": p.green }}>
       <Hero p={p} tilt={tweaks.tilt} stickers={tweaks.showStickers} />
       <Marquee text="napoli · weekend · 14—17 maggio · doc · sara · paola · pizza · sfogliatella · mare" color={p.yellow} ink={p.ink} />
-      <Itinerary p={p} tilt={tweaks.tilt} />
+      <Itinerary p={p} tilt={tweaks.tilt} weather={weather} />
       <Marquee text="fame · vista · sole · sampietrini · mare · caffè · sfogliatella · vesuvio" color={p.blue} ink={p.bg} />
       <FoodSection p={p} tilt={tweaks.tilt} />
       <TipsSection p={p} tilt={tweaks.tilt} />
+      <PlanBSection p={p} tilt={tweaks.tilt} weather={weather} />
       <FilesSection p={p} tilt={tweaks.tilt} />
       <Footer p={p} />
 
