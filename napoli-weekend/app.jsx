@@ -367,11 +367,12 @@ function Itinerary({ p, tilt }) {
             <div className="day-title">{day.date}</div>
             {day.sub && <div className="day-sub">— {day.sub}</div>}
           </div>
-          <div className="day-weather-pill" style={{ borderColor: accentColor, color: accentColor }}>
-            <span className="dwp-icon">{day.weather.icon}</span>
-            <span className="dwp-temp">{day.weather.temp}</span>
-            <span className="dwp-desc">{day.weather.desc}</span>
-          </div>
+          {getDaySummary(active) && (() => { const s = getDaySummary(active); return (
+            <div className="day-weather-pill" style={{ borderColor: accentColor, color: accentColor }}>
+              <span className="dwp-icon">{wmoEmoji(s.code)}</span>
+              <span className="dwp-temp">{s.max}°/{s.min}°</span>
+            </div>
+          ); })()}
         </div>
 
         <div className="timeline">
