@@ -41,7 +41,6 @@ const ITINERARY = [
     icon: "🚂",
     accent: "red",
     short: "Arrivo",
-    weather: { icon: "🌤", temp: "20°C", desc: "Parzialmente nuvoloso" },
     items: [
       { t: "15:00", title: "Doc + Sorella arrivano", body: "Check-in in via Sant'Anna dei Lombardi, sistemate e prime passeggiate nel centro storico.", tags: ["🚶 passeggiata"] },
       { t: "16:00", title: "Paola arriva 🎉", body: "Si comincia davvero! Tutti e tre insieme.", tags: [] },
@@ -56,7 +55,6 @@ const ITINERARY = [
     icon: "☀️",
     accent: "yellow",
     short: "Centro",
-    weather: { icon: "☀️", temp: "23°C", desc: "Soleggiato" },
     items: [
       { t: "mattina", title: "Centro storico & Cappella Sansevero", body: "Il Cristo Velato è imperdibile. Da prenotare prima! Poi il Duomo e i vicoli dei Decumani.", tags: ["🏛 cultura"] },
       { t: "pranzo", title: "Street food ai Quartieri Spagnoli", body: "Pizza fritta, cuoppo di frittura, sfogliatella calda. Mangiare camminando è d'obbligo.", tags: ["🍕 street food"] },
@@ -71,7 +69,6 @@ const ITINERARY = [
     icon: "🌊",
     accent: "blue",
     short: "Mare",
-    weather: { icon: "🌞", temp: "25°C", desc: "Caldo e soleggiato" },
     items: [
       { t: "mattina", title: "Castel dell'Ovo & Lungomare", body: "Il castello sul mare, la passeggiata da cartolina. Foto obbligatorie.", tags: ["🏰 castello", "🌊 lungomare"] },
       { t: "pranzo", title: "Frittura di pesce a Mergellina", body: "Cuoppo di mare sul porto, gelato di Mergellina per finire.", tags: ["🐟 pesce"] },
@@ -86,7 +83,6 @@ const ITINERARY = [
     icon: "👋",
     accent: "terra",
     short: "Rientro",
-    weather: { icon: "🌤", temp: "22°C", desc: "Qualche nuvola" },
     items: [
       { t: "mattina", title: "Colazione con sfogliatella", body: "Sfogliatella riccia calda e caffè napoletano al bar. Il modo migliore per salutare Napoli.", tags: ["☕ colazione"] },
       { t: "12:15", title: "Si parte 👋", body: "Ci si rivede alla prossima avventura!", tags: [] },
@@ -108,6 +104,30 @@ const TIPS = [
   { icon: "🚌", title: "Spostamenti", body: "Metro linea 1 è moderna e bella. Altrimenti taxi o a piedi — il centro è compatto." },
   { icon: "📍", title: "Base perfetta", body: "Via Sant'Anna dei Lombardi è nel cuore del centro storico — tutto è raggiungibile a piedi." },
 ];
+
+/* ---------- WEATHER helpers ---------- */
+function wmoEmoji(code) {
+  if (code === 0) return '☀️';
+  if (code <= 2) return '🌤';
+  if (code === 3) return '☁️';
+  if (code <= 48) return '🌫';
+  if (code <= 55) return '🌦';
+  if (code <= 65) return '🌧';
+  if (code <= 77) return '🌨';
+  if (code <= 82) return '🌦';
+  return '⛈';
+}
+
+function timeToHour(t) {
+  if (!t) return null;
+  const m = t.match(/^(\d{1,2}):/);
+  if (m) return parseInt(m[1]);
+  if (t === 'mattina') return 9;
+  if (t === 'pranzo') return 13;
+  if (t === 'pomeriggio') return 15;
+  if (t === 'sera') return 20;
+  return null;
+}
 
 /* ---------- FILES — Supabase ---------- */
 const BUCKET = 'napoli-files';
@@ -269,6 +289,37 @@ function Hero({ p, tilt, stickers }) {
 /* ---------- ITINERARY ---------- */
 function Itinerary({ p, tilt }) {
   const [active, setActive] = useState(0);
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=40.8518&longitude=14.2681&hourly=temperature_2m,precipitation_probability,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome&start_date=2026-05-14&end_date=2026-05-17')
+      .then(r => r.json())
+      .then(setWeather)
+      .catch(() => {});
+  }, []);
+
+  function getDaySummary(dayIdx) {
+    if (!weather) return null;
+    return {
+      max: Math.round(weather.daily.temperature_2m_max[dayIdx]),
+      min: Math.round(weather.daily.temperature_2m_min[dayIdx]),
+      code: weather.daily.weathercode[dayIdx],
+    };
+  }
+
+  function getItemWeather(dayIdx, t) {
+    if (!weather) return null;
+    const hour = timeToHour(t);
+    if (hour === null) return null;
+    const idx = dayIdx * 24 + hour;
+    const precip = weather.hourly.precipitation_probability[idx];
+    return {
+      code: weather.hourly.weathercode[idx],
+      temp: Math.round(weather.hourly.temperature_2m[idx]),
+      precip,
+    };
+  }
+
   const day = ITINERARY[active];
   const accentColor = p[day.accent];
 
@@ -283,25 +334,28 @@ function Itinerary({ p, tilt }) {
       </div>
 
       <div className="day-tabs">
-        {ITINERARY.map((d, i) => (
-          <button
-            key={d.id}
-            className={`day-tab ${i === active ? "is-active" : ""}`}
-            onClick={() => setActive(i)}
-            style={{
-              "--accent": p[d.accent],
-              "--ink": p.ink,
-              "--bg": p.bg,
-              transform: tilt ? `rotate(${(i - 1.5) * 1.2}deg)` : "none",
-            }}
-          >
-            <span className="dt-icon">{d.icon}</span>
-            <span className="dt-day">{d.date.split(" ")[0]}</span>
-            <span className="dt-date">{d.date.split(" ").slice(1).join(" ")}</span>
-            <span className="dt-pin">{d.short}</span>
-            <span className="dt-weather">{d.weather.icon} {d.weather.temp}</span>
-          </button>
-        ))}
+        {ITINERARY.map((d, i) => {
+          const s = getDaySummary(i);
+          return (
+            <button
+              key={d.id}
+              className={`day-tab ${i === active ? "is-active" : ""}`}
+              onClick={() => setActive(i)}
+              style={{
+                "--accent": p[d.accent],
+                "--ink": p.ink,
+                "--bg": p.bg,
+                transform: tilt ? `rotate(${(i - 1.5) * 1.2}deg)` : "none",
+              }}
+            >
+              <span className="dt-icon">{d.icon}</span>
+              <span className="dt-day">{d.date.split(" ")[0]}</span>
+              <span className="dt-date">{d.date.split(" ").slice(1).join(" ")}</span>
+              <span className="dt-pin">{d.short}</span>
+              {s && <span className="dt-wx">{wmoEmoji(s.code)} {s.max}°/{s.min}°</span>}
+            </button>
+          );
+        })}
       </div>
 
       <div className="day-content" key={day.id}>
@@ -321,26 +375,37 @@ function Itinerary({ p, tilt }) {
         </div>
 
         <div className="timeline">
-          {day.items.map((it, i) => (
-            <div className="t-row" key={i}>
-              <div className="t-time" style={{ color: accentColor }}>{it.t}</div>
-              <div className="t-dot-wrap">
-                <div className="t-line" style={{ background: p.ink }}></div>
-                <div className="t-dot" style={{ background: accentColor, borderColor: p.ink }}></div>
+          {day.items.map((it, i) => {
+            const wx = getItemWeather(active, it.t);
+            return (
+              <div className="t-row" key={i}>
+                <div className="t-time" style={{ color: accentColor }}>
+                  <span>{it.t}</span>
+                  {wx && (
+                    <span className="t-wx">
+                      {wmoEmoji(wx.code)} {wx.temp}°
+                      {wx.precip > 0 && <span style={{ opacity: 0.65 }}> · 💧{wx.precip}%</span>}
+                    </span>
+                  )}
+                </div>
+                <div className="t-dot-wrap">
+                  <div className="t-line" style={{ background: p.ink }}></div>
+                  <div className="t-dot" style={{ background: accentColor, borderColor: p.ink }}></div>
+                </div>
+                <div className="t-body">
+                  <h3 className="t-title">{it.title}</h3>
+                  <p className="t-text">{it.body}</p>
+                  {it.tags.length > 0 && (
+                    <div className="t-tags">
+                      {it.tags.map((tag, j) => (
+                        <span key={j} className="t-tag" style={{ borderColor: p.ink }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="t-body">
-                <h3 className="t-title">{it.title}</h3>
-                <p className="t-text">{it.body}</p>
-                {it.tags.length > 0 && (
-                  <div className="t-tags">
-                    {it.tags.map((tag, j) => (
-                      <span key={j} className="t-tag" style={{ borderColor: p.ink }}>{tag}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

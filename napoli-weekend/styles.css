@@ -330,12 +330,20 @@ body {
   border-top: 1.5px dashed currentColor;
   opacity: 0.7;
 }
-.dt-weather {
+.dt-wx {
   font-family: "DM Mono", monospace;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   margin-top: 6px;
   opacity: 0.9;
+}
+.t-wx {
+  display: block;
+  font-size: 13px;
+  margin-top: 5px;
+  letter-spacing: 0;
+  font-family: "DM Mono", monospace;
+  opacity: 0.85;
 }
 
 /* Day content */
