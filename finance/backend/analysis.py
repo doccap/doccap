@@ -35,18 +35,22 @@ def parse_amount(tx: dict) -> float:
         return 0.0
 
 
-def enrich_transactions(transactions: list) -> list:
+def enrich_transactions_truelayer(transactions: list) -> list:
+    """Normalize TrueLayer transaction format."""
     enriched = []
     for tx in transactions:
-        amount = parse_amount(tx)
-        desc = tx.get("remittanceInformationUnstructured") or tx.get("creditorName") or ""
+        try:
+            amount = float(tx.get("amount", 0))
+        except (ValueError, TypeError):
+            amount = 0.0
+        desc = tx.get("description") or tx.get("merchant_name") or ""
         enriched.append({
-            "id": tx.get("transactionId", ""),
-            "date": tx.get("bookingDate", ""),
+            "id": tx.get("transaction_id", ""),
+            "date": (tx.get("timestamp") or tx.get("booking_datetime") or "")[:10],
             "amount": amount,
             "description": desc,
             "category": categorize(desc),
-            "currency": tx.get("transactionAmount", {}).get("currency", "EUR"),
+            "currency": tx.get("currency", "EUR"),
         })
     return enriched
 

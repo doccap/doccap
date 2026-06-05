@@ -7,10 +7,9 @@ import {
 import { getAccounts, getAnalysis, getInsights, getTransactions } from "../api";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6"];
-
 const fmt = (n) => `€${Number(n).toFixed(2)}`;
 
-export default function Dashboard({ requisitionId }) {
+export default function Dashboard({ tokenId, onDisconnect }) {
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -25,35 +24,47 @@ export default function Dashboard({ requisitionId }) {
   const [dateTo] = useState(new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    getAccounts(requisitionId).then((accs) => {
-      setAccounts(accs);
-      if (accs.length > 0) setSelectedAccount(accs[0].id);
-    });
-  }, [requisitionId]);
+    getAccounts(tokenId)
+      .then((accs) => {
+        setAccounts(accs);
+        if (accs.length > 0) setSelectedAccount(accs[0].id);
+      })
+      .catch(() => setError("Sessione scaduta. Riconnetti il tuo conto."));
+  }, [tokenId]);
 
   const loadData = useCallback(async () => {
     if (!selectedAccount) return;
     setLoading(true);
-    const [an, txs] = await Promise.all([
-      getAnalysis(selectedAccount, dateFrom, dateTo),
-      getTransactions(selectedAccount, dateFrom, dateTo),
-    ]);
-    setAnalysis(an);
-    setTransactions(txs);
-    setInsights(null);
+    setError(null);
+    try {
+      const [an, txs] = await Promise.all([
+        getAnalysis(tokenId, selectedAccount, dateFrom, dateTo),
+        getTransactions(tokenId, selectedAccount, dateFrom, dateTo),
+      ]);
+      setAnalysis(an);
+      setTransactions(txs);
+      setInsights(null);
+    } catch {
+      setError("Errore nel caricamento dei dati.");
+    }
     setLoading(false);
-  }, [selectedAccount, dateFrom, dateTo]);
+  }, [tokenId, selectedAccount, dateFrom, dateTo]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleGetInsights = async () => {
     setLoadingInsights(true);
-    const result = await getInsights(analysis);
-    setInsights(result?.suggerimenti || []);
+    try {
+      const result = await getInsights(analysis);
+      setInsights(result?.suggerimenti || []);
+      setActiveTab("insights");
+    } catch {
+      setError("Errore nell'analisi AI.");
+    }
     setLoadingInsights(false);
-    setActiveTab("insights");
   };
 
   const categoryData = analysis
@@ -66,32 +77,31 @@ export default function Dashboard({ requisitionId }) {
 
   return (
     <div className="dashboard">
-      {/* Header */}
       <div className="dashboard-header">
         <h1>Finance Dashboard</h1>
         <div className="controls">
-          <select
-            value={selectedAccount || ""}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-          >
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.details?.iban || a.id}
-              </option>
-            ))}
-          </select>
+          {accounts.length > 0 && (
+            <select value={selectedAccount || ""} onChange={(e) => setSelectedAccount(e.target.value)}>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.display_name || a.iban || a.id}
+                </option>
+              ))}
+            </select>
+          )}
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          <span>→</span>
+          <span style={{ color: "#94a3b8" }}>→</span>
           <input type="date" value={dateTo} readOnly />
           <button className="btn-primary" onClick={loadData}>Aggiorna</button>
+          <button className="btn-secondary" onClick={onDisconnect}>Disconnetti</button>
         </div>
       </div>
 
+      {error && <div className="error-banner">{error}</div>}
       {loading && <div className="loading">Caricamento dati...</div>}
 
       {analysis && !loading && (
         <>
-          {/* KPI cards */}
           <div className="kpi-row">
             <div className="kpi-card kpi-red">
               <span className="kpi-label">Spese totali</span>
@@ -111,14 +121,9 @@ export default function Dashboard({ requisitionId }) {
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="tabs">
             {["overview", "trends", "recurring", "transactions", "insights"].map((tab) => (
-              <button
-                key={tab}
-                className={`tab${activeTab === tab ? " active" : ""}`}
-                onClick={() => setActiveTab(tab)}
-              >
+              <button key={tab} className={`tab${activeTab === tab ? " active" : ""}`} onClick={() => setActiveTab(tab)}>
                 {{ overview: "Categorie", trends: "Trend", recurring: "Ricorrenti", transactions: "Movimenti", insights: "Ottimizzazioni AI" }[tab]}
               </button>
             ))}
@@ -130,7 +135,8 @@ export default function Dashboard({ requisitionId }) {
                 <h3>Spese per categoria</h3>
                 <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
-                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                       {categoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v) => fmt(v)} />
@@ -217,7 +223,7 @@ export default function Dashboard({ requisitionId }) {
 
           {activeTab === "insights" && (
             <div className="tab-content">
-              {!insights && (
+              {!insights ? (
                 <div className="insights-cta">
                   <h3>Ottimizzazioni AI</h3>
                   <p>Claude analizza le tue spese e suggerisce dove puoi risparmiare concretamente.</p>
@@ -225,8 +231,7 @@ export default function Dashboard({ requisitionId }) {
                     {loadingInsights ? "Analisi in corso..." : "Analizza con AI"}
                   </button>
                 </div>
-              )}
-              {insights && (
+              ) : (
                 <div>
                   <h3>Suggerimenti di ottimizzazione</h3>
                   <div className="insights-grid">

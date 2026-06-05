@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import nordigen_client as ng
+import truelayer_client as tl
 import analysis as an
 import ai_insights
 
@@ -14,72 +14,95 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret")
 CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 
-# In-memory store for demo (replace with DB for production)
-_requisitions = {}
+SANDBOX = os.environ.get("TRUELAYER_SANDBOX", "false").lower() == "true"
+REDIRECT_URI = os.environ.get("REDIRECT_URI", "http://localhost:3000/callback")
+
+# In-memory token store (replace with DB / encrypted storage for production)
+_tokens: dict[str, dict] = {}
 
 
-@app.route("/api/institutions")
-def institutions():
-    country = request.args.get("country", "IT")
-    data = ng.list_institutions(country)
-    return jsonify(data)
+@app.route("/api/auth/url")
+def auth_url():
+    state = str(uuid.uuid4())
+    session["oauth_state"] = state
+    url = tl.get_auth_url(REDIRECT_URI, state, sandbox=SANDBOX)
+    return jsonify({"url": url, "state": state})
 
 
-@app.route("/api/connect", methods=["POST"])
-def connect():
+@app.route("/api/auth/callback", methods=["POST"])
+def auth_callback():
     body = request.json or {}
-    institution_id = body.get("institution_id")
-    if not institution_id:
-        return jsonify({"error": "institution_id required"}), 400
+    code = body.get("code")
+    state = body.get("state")
 
-    redirect_url = body.get("redirect_url", "http://localhost:3000/callback")
-    reference = str(uuid.uuid4())
-    req = ng.create_requisition(institution_id, redirect_url, reference)
-    _requisitions[reference] = req["id"]
-    session["requisition_id"] = req["id"]
-    return jsonify({"link": req["link"], "requisition_id": req["id"], "reference": reference})
+    if not code:
+        return jsonify({"error": "missing code"}), 400
+
+    token_data = tl.exchange_code(code, REDIRECT_URI, sandbox=SANDBOX)
+    token_id = str(uuid.uuid4())
+    _tokens[token_id] = token_data
+    session["token_id"] = token_id
+    return jsonify({"token_id": token_id})
 
 
 @app.route("/api/accounts")
 def accounts():
-    req_id = request.args.get("requisition_id") or session.get("requisition_id")
-    if not req_id:
-        return jsonify({"error": "Not connected"}), 400
-    req = ng.get_requisition(req_id)
-    account_ids = req.get("accounts", [])
-    accounts_data = []
-    for acc_id in account_ids:
-        details = ng.get_account_details(acc_id)
-        balances = ng.get_account_balances(acc_id)
-        accounts_data.append({"id": acc_id, "details": details, "balances": balances})
-    return jsonify(accounts_data)
+    token_id = request.args.get("token_id") or session.get("token_id")
+    token_data = _tokens.get(token_id)
+    if not token_data:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    access_token = token_data["access_token"]
+    accs = tl.get_accounts(access_token, sandbox=SANDBOX)
+    result = []
+    for acc in accs:
+        balance = tl.get_account_balance(access_token, acc["account_id"], sandbox=SANDBOX)
+        result.append({
+            "id": acc["account_id"],
+            "display_name": acc.get("display_name", ""),
+            "account_type": acc.get("account_type", ""),
+            "currency": acc.get("currency", "EUR"),
+            "iban": acc.get("account_number", {}).get("iban", ""),
+            "balance": balance,
+        })
+    return jsonify(result)
 
 
 @app.route("/api/transactions")
 def transactions():
+    token_id = request.args.get("token_id") or session.get("token_id")
     account_id = request.args.get("account_id")
-    if not account_id:
-        return jsonify({"error": "account_id required"}), 400
+    token_data = _tokens.get(token_id)
+
+    if not token_data or not account_id:
+        return jsonify({"error": "token_id and account_id required"}), 400
 
     date_from = request.args.get("date_from")
     date_to = request.args.get("date_to")
 
-    raw = ng.get_account_transactions(account_id, date_from, date_to)
-    enriched = an.enrich_transactions(raw)
+    raw = tl.get_account_transactions(
+        token_data["access_token"], account_id, date_from, date_to, sandbox=SANDBOX
+    )
+    enriched = an.enrich_transactions_truelayer(raw)
     return jsonify(enriched)
 
 
 @app.route("/api/analysis")
 def analysis():
+    token_id = request.args.get("token_id") or session.get("token_id")
     account_id = request.args.get("account_id")
-    if not account_id:
-        return jsonify({"error": "account_id required"}), 400
+    token_data = _tokens.get(token_id)
+
+    if not token_data or not account_id:
+        return jsonify({"error": "token_id and account_id required"}), 400
 
     date_from = request.args.get("date_from")
     date_to = request.args.get("date_to")
 
-    raw = ng.get_account_transactions(account_id, date_from, date_to)
-    txs = an.enrich_transactions(raw)
+    raw = tl.get_account_transactions(
+        token_data["access_token"], account_id, date_from, date_to, sandbox=SANDBOX
+    )
+    txs = an.enrich_transactions_truelayer(raw)
 
     return jsonify({
         "by_category": an.expenses_by_category(txs),
