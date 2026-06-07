@@ -1,0 +1,4 @@
+# Personal financial data — never commit
+*.csv
+private/
+analisi-finanziaria-*.md
