@@ -19,3 +19,9 @@ export const getTransactions = (token_id, account_id, date_from, date_to) =>
 
 export const getInsights = (analysisData) =>
   axios.post(`${BASE}/insights`, analysisData).then((r) => r.data);
+
+export const uploadCsv = (file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return axios.post(`${BASE}/upload-csv`, form).then((r) => r.data);
+};

@@ -14,7 +14,7 @@ CATEGORY_RULES = [
     ("Shopping", ["zara", "h&m", "primark", "zalando", "amazon", "ikea", "decathlon", "mediaworld", "unieuro"]),
     ("Sport & Benessere", ["palestra", "gym", "fitness", "piscina", "yoga", "crossfit"]),
     ("Istruzione", ["università", "corso", "udemy", "coursera", "libro", "libreria", "scuola"]),
-    ("Banca & Finanza", ["commissione", "canone", "bollo", "bonifico", "prelievo", "atm"]),
+    ("Banca & Finanza", ["commissione", "canone", "bollo", "bonifico", "prelievo", "atm", "satispay", "ricarica"]),
     ("Intrattenimento", ["cinema", "teatro", "concerti", "museo", "ticketmaster", "ticketone", "eventbrite"]),
 ]
 
@@ -33,6 +33,59 @@ def parse_amount(tx: dict) -> float:
         return float(tx.get("transactionAmount", {}).get("amount", 0))
     except (ValueError, TypeError):
         return 0.0
+
+
+def enrich_transactions_hype_csv(rows: list) -> list:
+    """Normalize Hype CSV export format."""
+    enriched = []
+    for row in rows:
+        try:
+            amount = float(str(row.get("Importo ( € )", "0")).replace(",", "."))
+        except (ValueError, TypeError):
+            amount = 0.0
+        raw_date = row.get("Data operazione", "")
+        try:
+            parts = raw_date.strip().split("/")
+            date = f"{parts[2]}-{parts[1]}-{parts[0]}"
+        except Exception:
+            date = ""
+        desc = row.get("Nome") or row.get("Descrizione") or ""
+        enriched.append({
+            "id": f"hype-{raw_date}-{desc}-{amount}",
+            "date": date,
+            "amount": amount,
+            "description": desc,
+            "category": categorize(desc),
+            "currency": "EUR",
+        })
+    return enriched
+
+
+def enrich_transactions_tink(transactions: list) -> list:
+    """Normalize Tink transaction format."""
+    enriched = []
+    for tx in transactions:
+        try:
+            val = tx.get("amount", {}).get("value", {})
+            scale = int(val.get("scale", 0))
+            unscaled = int(val.get("unscaledValue", 0))
+            amount = round(unscaled / (10 ** scale), 2)
+        except (ValueError, TypeError, ZeroDivisionError):
+            amount = 0.0
+        desc = (tx.get("descriptions", {}).get("display") or
+                tx.get("descriptions", {}).get("original") or "")
+        date = (tx.get("dates", {}).get("booked") or
+                tx.get("dates", {}).get("value") or "")
+        currency = tx.get("amount", {}).get("currencyCode", "EUR")
+        enriched.append({
+            "id": tx.get("id", ""),
+            "date": date[:10] if date else "",
+            "amount": amount,
+            "description": desc,
+            "category": categorize(desc),
+            "currency": currency,
+        })
+    return enriched
 
 
 def enrich_transactions_truelayer(transactions: list) -> list:

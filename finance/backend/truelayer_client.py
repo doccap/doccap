@@ -1,6 +1,7 @@
 """TrueLayer Open Banking client (PSD2)."""
 import os
 import requests
+from urllib.parse import urlencode
 
 AUTH_URL = "https://auth.truelayer.com"
 DATA_URL = "https://api.truelayer.com/data/v1"
@@ -27,11 +28,11 @@ def get_auth_url(redirect_uri: str, state: str, sandbox: bool = False) -> str:
         "client_id": os.environ["TRUELAYER_CLIENT_ID"],
         "scope": "info accounts balance transactions",
         "redirect_uri": redirect_uri,
-        "providers": "it-ob-all",  # all Italian banks
         "state": state,
     }
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
-    return f"{auth_base}/?{qs}"
+    if sandbox:
+        params["providers"] = "mock"
+    return f"{auth_base}/?{urlencode(params)}"
 
 
 def exchange_code(code: str, redirect_uri: str, sandbox: bool = False) -> dict:
@@ -74,11 +75,13 @@ def get_account_transactions(access_token: str, account_id: str,
                               date_from: str = None, date_to: str = None,
                               sandbox: bool = False) -> list:
     _, data_base = _base(sandbox)
-    params = {}
-    if date_from:
-        params["from"] = f"{date_from}T00:00:00Z"
-    if date_to:
-        params["to"] = f"{date_to}T23:59:59Z"
+    # Sandbox mock bank only has pre-seeded data; ignore date filters to avoid 400s
+    params = {} if sandbox else {}
+    if not sandbox:
+        if date_from:
+            params["from"] = f"{date_from}T00:00:00Z"
+        if date_to:
+            params["to"] = f"{date_to}T23:59:59Z"
     resp = requests.get(
         f"{data_base}/accounts/{account_id}/transactions",
         headers=_auth_header(access_token),

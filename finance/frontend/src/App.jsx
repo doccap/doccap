@@ -38,7 +38,7 @@ export default function App() {
           onDisconnect={() => { localStorage.removeItem("token_id"); setTokenId(null); }}
         />
       ) : (
-        <ConnectBank />
+        <ConnectBank onDemo={(id) => { localStorage.setItem("token_id", id); setTokenId(id); }} />
       )}
     </div>
   );
