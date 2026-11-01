@@ -6,20 +6,22 @@
   <title>Estrai il tema</title>
   <meta name="description" content="Pesca il tuo tema segreto da disegnare.">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f4efe4" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1b1a17" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#5d5c4b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#23231c" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Rokkitt:wght@400..800&family=Special+Elite&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="page">
     <header class="masthead">
+      <p class="kicker">Gioco di disegno <span aria-hidden="true">·</span> tra amici</p>
       <h1 class="title">Estrai<br>il tema</h1>
-      <svg class="scribble" viewBox="0 0 220 18" aria-hidden="true"><path d="M3 12c40-8 80-9 120-6s60 4 94-3" /></svg>
     </header>
+
+    <div class="content">
 
     <!-- Caricamento -->
     <section class="view" data-view="loading" aria-live="polite">
@@ -28,6 +30,7 @@
 
     <!-- Non autenticato -->
     <section class="view" data-view="signin" hidden>
+      <p class="ribbon"><span>Si gioca</span></p>
       <p class="lead">Ognuno pesca un tema segreto da disegnare. Lo vedi solo tu, e non si cambia.</p>
       <button class="btn btn-primary" id="login" type="button">
         <svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3ZM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Zm-5.6-8a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9l3.3-2.5ZM12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6Z"/></svg>
@@ -38,6 +41,7 @@
 
     <!-- Pronto per estrarre -->
     <section class="view" data-view="draw" hidden>
+      <p class="ribbon"><span>Estrazione</span></p>
       <p class="lead">Ciao <strong class="js-name"></strong>! Si pesca?</p>
       <button class="btn btn-primary btn-big" id="draw" type="button">Estrai il mio tema</button>
       <p class="hint">Si estrae una volta sola. <span class="js-left"></span></p>
@@ -45,6 +49,7 @@
 
     <!-- Bigliettino -->
     <section class="view" data-view="reveal" hidden>
+      <p class="ribbon"><span>Il tuo tema</span></p>
       <p class="lead"><span class="js-reveal-lead">Ecco il tuo bigliettino</span>, <strong class="js-name"></strong>.</p>
       <div class="stage">
         <div class="note" id="note" data-open="false">
@@ -63,12 +68,15 @@
 
     <!-- Temi finiti / non pronto / errore -->
     <section class="view" data-view="message" hidden>
+      <p class="ribbon"><span>Avviso</span></p>
       <div class="card-msg" role="status">
         <p class="msg-title js-msg-title"></p>
         <p class="js-msg-text"></p>
       </div>
       <button class="btn" id="retry" type="button" hidden>Riprova</button>
     </section>
+
+    </div>
 
     <footer class="foot" id="foot" hidden>
       <span class="js-email"></span>

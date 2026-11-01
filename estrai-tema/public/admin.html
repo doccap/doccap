@@ -6,21 +6,22 @@
   <title>Regia · Estrai il tema</title>
   <meta name="robots" content="noindex">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f4efe4" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1b1a17" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#5d5c4b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#23231c" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%A9%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Rokkitt:wght@400..800&family=Special+Elite&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="admin">
   <main class="page page-wide">
     <header class="masthead">
+      <p class="kicker">Estrai il tema <span aria-hidden="true">·</span> <a href="./">vai al gioco</a></p>
       <h1 class="title title-sm">Regia</h1>
-      <svg class="scribble" viewBox="0 0 220 18" aria-hidden="true"><path d="M3 12c40-8 80-9 120-6s60 4 94-3" /></svg>
-      <p class="muted">Estrai il tema · <a href="./">vai al gioco</a></p>
     </header>
+
+    <div class="content">
 
     <section class="view" data-view="loading" aria-live="polite">
       <p class="muted pulse">Un attimo…</p>
@@ -47,13 +48,14 @@
 
     <section class="view admin-grid" data-view="admin" hidden>
       <div class="panel stats" aria-live="polite">
+        <p class="stats-kicker">Estratti</p>
         <p class="big-count"><span id="drawn">0</span><span class="of"> su </span><span id="total">0</span></p>
-        <p class="stats-line">estratti · ne restano <strong id="left">0</strong></p>
+        <p class="stats-line">ne restano <strong id="left">0</strong></p>
         <div class="bar" aria-hidden="true"><span id="bar"></span></div>
       </div>
 
       <div class="panel">
-        <h2 class="h2">Temi</h2>
+        <h2 class="ribbon ribbon-left"><span>Temi</span></h2>
         <label for="themes" class="label">Uno per riga. I doppioni vengono tolti, l'ordine viene mescolato.</label>
         <textarea id="themes" rows="10" spellcheck="false" placeholder="Un gatto astronauta&#10;La pizza che vola&#10;Il vulcano timido"></textarea>
         <div class="row">
@@ -65,7 +67,7 @@
 
       <div class="panel">
         <div class="row row-between">
-          <h2 class="h2">Estrazioni</h2>
+          <h2 class="ribbon ribbon-left"><span>Estrazioni</span></h2>
           <button class="btn btn-danger btn-small" id="reset" type="button">Azzera le estrazioni</button>
         </div>
         <div class="table-wrap">
@@ -77,6 +79,8 @@
         <p class="muted empty" id="empty">Ancora nessuno ha estratto.</p>
       </div>
     </section>
+
+    </div>
 
     <footer class="foot" id="foot" hidden>
       <span class="js-email"></span>
