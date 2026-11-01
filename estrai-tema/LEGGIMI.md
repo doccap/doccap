@@ -1,4 +1,4 @@
-# Estrai il tema ✏️
+# Doccap Drawing Challenge ✏️
 
 Piccolo sito per un gioco tra amici: ognuno entra con Google e pesca un tema segreto da disegnare.
 Temi unici, ognuno vede solo il proprio, niente seconde estrazioni. Pagina di regia su `/admin.html`.

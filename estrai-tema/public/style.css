@@ -1,4 +1,4 @@
-/* Estrai il tema — stile "stampa vintage": carta a pois, ardesia, oliva e bordeaux */
+/* Doccap Drawing Challenge — stile "stampa vintage": carta a pois, ardesia, oliva e bordeaux */
 
 :root {
   --frame: #5f6265;          /* sfondo attorno al foglio */
@@ -118,6 +118,7 @@ body {
   color: var(--khaki);
 }
 .kicker a { color: inherit; text-decoration-color: currentColor; }
+@media (max-width: 360px) { .kicker { letter-spacing: .14em; font-size: .85rem; } }
 .title {
   margin: 0;
   font-family: var(--display);
@@ -129,6 +130,14 @@ body {
   text-shadow: 0 2px 0 rgba(0, 0, 0, .25);
 }
 .title-sm { font-size: clamp(2.6rem, 12vw, 3.4rem); }
+.title:not(.title-sm) { font-size: clamp(2.3rem, 12.5vw, 3.7rem); }
+.title-top {
+  display: block;
+  font-size: .5em;
+  letter-spacing: .32em;
+  margin: 0 0 .25em .32em; /* compensa la spaziatura dell'ultima lettera */
+  color: var(--khaki);
+}
 
 .content { flex: 1; padding: 1.75rem 1.6rem 2.2rem; }
 

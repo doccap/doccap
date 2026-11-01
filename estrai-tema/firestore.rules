@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Estrai il tema — regole di sicurezza.
+// Doccap Drawing Challenge — regole di sicurezza.
 // Senza backend, sono queste regole a garantire che:
 //  - ogni tema venga assegnato a una sola persona (anche con estrazioni simultanee);
 //  - ognuno veda solo il proprio tema;
