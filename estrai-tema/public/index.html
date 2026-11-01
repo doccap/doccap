@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Estrai il tema</title>
+  <meta name="description" content="Pesca il tuo tema segreto da disegnare.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f4efe4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1b1a17" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <h1 class="title">Estrai<br>il tema</h1>
+      <svg class="scribble" viewBox="0 0 220 18" aria-hidden="true"><path d="M3 12c40-8 80-9 120-6s60 4 94-3" /></svg>
+    </header>
+
+    <!-- Caricamento -->
+    <section class="view" data-view="loading" aria-live="polite">
+      <p class="muted pulse">Un attimo…</p>
+    </section>
+
+    <!-- Non autenticato -->
+    <section class="view" data-view="signin" hidden>
+      <p class="lead">Ognuno pesca un tema segreto da disegnare. Lo vedi solo tu, e non si cambia.</p>
+      <button class="btn btn-primary" id="login" type="button">
+        <svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3ZM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Zm-5.6-8a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9l3.3-2.5ZM12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6Z"/></svg>
+        Entra con Google
+      </button>
+      <p class="hint">Se il login non si apre, apri il link direttamente in Safari o Chrome.</p>
+    </section>
+
+    <!-- Pronto per estrarre -->
+    <section class="view" data-view="draw" hidden>
+      <p class="lead">Ciao <strong class="js-name"></strong>! Si pesca?</p>
+      <button class="btn btn-primary btn-big" id="draw" type="button">Estrai il mio tema</button>
+      <p class="hint">Si estrae una volta sola. <span class="js-left"></span></p>
+    </section>
+
+    <!-- Bigliettino -->
+    <section class="view" data-view="reveal" hidden>
+      <p class="lead"><span class="js-reveal-lead">Ecco il tuo bigliettino</span>, <strong class="js-name"></strong>.</p>
+      <div class="stage">
+        <div class="note" id="note" data-open="false">
+          <div class="note-flap" aria-hidden="true">
+            <div class="face face-front"><span class="note-label">Il tuo tema è…</span></div>
+            <div class="face face-back"><span class="q">?</span><span class="tap">segreto</span></div>
+          </div>
+          <div class="note-body">
+            <p class="theme" id="theme" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>
+      <button class="btn" id="toggle" type="button" aria-controls="note" aria-expanded="false">Apri il bigliettino</button>
+      <p class="hint">Non dirlo a nessuno. Puoi tornare qui quando vuoi per rileggerlo.</p>
+    </section>
+
+    <!-- Temi finiti / non pronto / errore -->
+    <section class="view" data-view="message" hidden>
+      <div class="card-msg" role="status">
+        <p class="msg-title js-msg-title"></p>
+        <p class="js-msg-text"></p>
+      </div>
+      <button class="btn" id="retry" type="button" hidden>Riprova</button>
+    </section>
+
+    <footer class="foot" id="foot" hidden>
+      <span class="js-email"></span>
+      <button class="link" id="logout" type="button">Esci</button>
+    </footer>
+  </main>
+
+  <script type="module">
+    import {
+      doc, getDoc, onSnapshot, runTransaction, serverTimestamp,
+    } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+    import {
+      auth, db, login, onAuthStateChanged, signOut, redirectResult, friendlyError, configMissing,
+    } from './firebase.js';
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => document.querySelectorAll(s);
+    const counterRef = doc(db, 'meta/counter');
+    let unsubCounter = null;
+    let busy = false;
+
+    function show(name) {
+      for (const v of $$('.view')) v.hidden = v.dataset.view !== name;
+    }
+    function message(title, text, { retry = false } = {}) {
+      $('.js-msg-title').textContent = title;
+      $('.js-msg-text').textContent = text;
+      $('#retry').hidden = !retry;
+      show('message');
+    }
+    const FINISHED = () => message('I temi sono finiti', 'Avvisa chi organizza.');
+    const NOT_READY = () => message('Non ancora pronto', 'I temi non sono stati caricati. Riprova più tardi.', { retry: true });
+
+    if (configMissing) {
+      message('Sito da configurare', 'Manca la configurazione di Firebase in config.js.');
+    }
+
+    // ── Login ────────────────────────────────────────────────────────────
+    $('#login').addEventListener('click', async () => {
+      $('#login').disabled = true;
+      try { await login(); }
+      catch (e) { console.error(e); message('Login non riuscito', friendlyError(e), { retry: true }); }
+      finally { $('#login').disabled = false; }
+    });
+    $('#logout').addEventListener('click', () => signOut(auth));
+    $('#retry').addEventListener('click', () => start(auth.currentUser));
+
+    redirectResult.then((r) => {
+      if (r instanceof Error) message('Login non riuscito', friendlyError(r), { retry: true });
+    });
+
+    onAuthStateChanged(auth, (user) => { if (!configMissing) start(user); });
+
+    function displayName(user) {
+      return (user.displayName || user.email.split('@')[0]).trim().slice(0, 100);
+    }
+
+    // ── Stato iniziale dopo il login ─────────────────────────────────────
+    async function start(user) {
+      unsubCounter?.(); unsubCounter = null;
+      $('#foot').hidden = !user;
+      if (!user) return show('signin');
+
+      $('.js-email').textContent = user.email;
+      for (const el of $$('.js-name')) el.textContent = displayName(user).split(' ')[0];
+      show('loading');
+
+      try {
+        const mine = await getDoc(doc(db, 'assignments', user.uid));
+        if (mine.exists()) return reveal(mine.data().idx, { fresh: false });
+
+        // Nessun tema ancora: mostra il pulsante e tieni aggiornato il conteggio.
+        unsubCounter = onSnapshot(counterRef, (snap) => {
+          if (busy) return;
+          const c = snap.data();
+          if (!c || !c.total) return NOT_READY();
+          if (c.next >= c.total) return FINISHED();
+          const left = c.total - c.next;
+          $('.js-left').textContent = left === 1 ? 'Resta un solo tema!' : `Restano ${left} temi.`;
+          show('draw');
+        }, (e) => { console.error(e); message('Errore', friendlyError(e), { retry: true }); });
+      } catch (e) {
+        console.error(e);
+        message('Errore', friendlyError(e), { retry: true });
+      }
+    }
+
+    // ── Estrazione ───────────────────────────────────────────────────────
+    // L'unicità la garantiscono le regole: se due persone estraggono insieme,
+    // una delle due transazioni fallisce e viene ripetuta con il numero successivo.
+    class Finished extends Error {}
+    class NotReady extends Error {}
+
+    function drawOnce(user) {
+      return runTransaction(db, async (tx) => {
+        const aRef = doc(db, 'assignments', user.uid);
+        const a = await tx.get(aRef);
+        if (a.exists()) return a.data().idx;
+        const c = (await tx.get(counterRef)).data();
+        if (!c || !c.total) throw new NotReady();
+        if (c.next >= c.total) throw new Finished();
+        const idx = String(c.next);
+        tx.set(aRef, { idx, email: user.email, name: displayName(user), at: serverTimestamp() });
+        tx.update(counterRef, { next: c.next + 1 });
+        return idx;
+      });
+    }
+
+    $('#draw').addEventListener('click', async () => {
+      const user = auth.currentUser;
+      if (!user || busy) return;
+      busy = true;
+      const btn = $('#draw');
+      btn.disabled = true;
+      btn.textContent = 'Sto pescando…';
+      try {
+        let idx;
+        for (let attempt = 0; ; attempt++) {
+          try { idx = await drawOnce(user); break; }
+          catch (e) {
+            if (e instanceof Finished || e instanceof NotReady || attempt >= 6) throw e;
+            await new Promise((r) => setTimeout(r, 150 + Math.random() * 400 * (attempt + 1)));
+          }
+        }
+        unsubCounter?.(); unsubCounter = null;
+        await reveal(idx, { fresh: true });
+      } catch (e) {
+        if (e instanceof Finished) FINISHED();
+        else if (e instanceof NotReady) NOT_READY();
+        else { console.error(e); message('Estrazione non riuscita', friendlyError(e), { retry: true }); }
+      } finally {
+        busy = false;
+        btn.disabled = false;
+        btn.textContent = 'Estrai il mio tema';
+      }
+    });
+
+    // ── Bigliettino ──────────────────────────────────────────────────────
+    async function reveal(idx, { fresh }) {
+      const snap = await getDoc(doc(db, 'pool', idx));
+      $('#theme').textContent = snap.exists() ? snap.data().text : '(tema non trovato, avvisa chi organizza)';
+      $('.js-reveal-lead').textContent = fresh ? 'Ecco cosa hai pescato' : 'Ciao di nuovo';
+      setOpen(false);
+      show('reveal');
+      if (fresh) setTimeout(() => setOpen(true), 450);
+    }
+
+    function setOpen(open) {
+      $('#note').dataset.open = String(open);
+      $('#toggle').setAttribute('aria-expanded', String(open));
+      $('#toggle').textContent = open ? 'Richiudi' : 'Apri il bigliettino';
+      $('#theme').hidden = false;
+      $('#note .note-body').setAttribute('aria-hidden', String(!open));
+    }
+    $('#toggle').addEventListener('click', () => setOpen($('#note').dataset.open !== 'true'));
+    $('#note').addEventListener('click', () => setOpen($('#note').dataset.open !== 'true'));
+  </script>
+</body>
+</html>
