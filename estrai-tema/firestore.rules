@@ -1,0 +1,80 @@
+rules_version = '2';
+
+// Estrai il tema — regole di sicurezza.
+// Senza backend, sono queste regole a garantire che:
+//  - ogni tema venga assegnato a una sola persona (anche con estrazioni simultanee);
+//  - ognuno veda solo il proprio tema;
+//  - nessuno possa estrarre due volte o cambiare tema.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ⚠️ EMAIL ADMIN: deve coincidere con ADMIN_EMAIL in public/config.js
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'antonio.capone5@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function counterPath() {
+      return /databases/$(database)/documents/meta/counter;
+    }
+
+    function myAssignmentPath() {
+      return /databases/$(database)/documents/assignments/$(request.auth.uid);
+    }
+
+    // ── Temi mescolati: pool/{i} = {text} ─────────────────────────────
+    match /pool/{i} {
+      // Il giocatore legge SOLO il tema con id == idx della propria assegnazione.
+      allow get: if isAdmin()
+        || (signedIn()
+            && exists(myAssignmentPath())
+            && get(myAssignmentPath()).data.idx == i);
+      allow list, write: if isAdmin();
+    }
+
+    // ── Contatore: meta/counter = {next, total} ───────────────────────
+    match /meta/counter {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        signedIn()
+        // cambia solo `next`, e solo di +1
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['next'])
+        && request.resource.data.next == resource.data.next + 1
+        // ci sono ancora temi
+        && resource.data.next < resource.data.total
+        // non aveva già un'assegnazione…
+        && !exists(myAssignmentPath())
+        // …e la crea in questa stessa scrittura, col numero giusto
+        && existsAfter(myAssignmentPath())
+        && getAfter(myAssignmentPath()).data.idx == string(resource.data.next)
+      );
+    }
+
+    // ── Assegnazioni: assignments/{uid} = {idx, email, name, at} ──────
+    match /assignments/{uid} {
+      allow get: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow list, delete: if isAdmin();
+      allow update: if false;
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['idx', 'email', 'name', 'at'])
+        && request.resource.data.keys().hasAll(['idx', 'email', 'name', 'at'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.at == request.time
+        && get(counterPath()).data.next < get(counterPath()).data.total
+        && request.resource.data.idx == string(get(counterPath()).data.next)
+        // il contatore viene incrementato nella stessa scrittura
+        && getAfter(counterPath()).data.next == get(counterPath()).data.next + 1;
+    }
+  }
+}

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Regia · Estrai il tema</title>
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#5d5c4b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#23231c" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%A9%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Rokkitt:wght@400..800&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin">
+  <main class="page page-wide">
+    <header class="masthead">
+      <p class="kicker">Estrai il tema <span aria-hidden="true">·</span> <a href="./">vai al gioco</a></p>
+      <h1 class="title title-sm">Regia</h1>
+    </header>
+
+    <div class="content">
+
+    <section class="view" data-view="loading" aria-live="polite">
+      <p class="muted pulse">Un attimo…</p>
+    </section>
+
+    <section class="view" data-view="signin" hidden>
+      <p class="lead">Area riservata a chi organizza.</p>
+      <button class="btn btn-primary" id="login" type="button">Entra con Google</button>
+    </section>
+
+    <section class="view" data-view="denied" hidden>
+      <div class="card-msg" role="status">
+        <p class="msg-title">Accesso negato</p>
+        <p>Questa pagina è solo per chi organizza. Sei entrato come <strong class="js-email"></strong>.</p>
+      </div>
+    </section>
+
+    <section class="view" data-view="error" hidden>
+      <div class="card-msg" role="alert">
+        <p class="msg-title">Errore</p>
+        <p class="js-error"></p>
+      </div>
+    </section>
+
+    <section class="view admin-grid" data-view="admin" hidden>
+      <div class="panel stats" aria-live="polite">
+        <p class="stats-kicker">Estratti</p>
+        <p class="big-count"><span id="drawn">0</span><span class="of"> su </span><span id="total">0</span></p>
+        <p class="stats-line">ne restano <strong id="left">0</strong></p>
+        <div class="bar" aria-hidden="true"><span id="bar"></span></div>
+      </div>
+
+      <div class="panel">
+        <h2 class="ribbon ribbon-left"><span>Temi</span></h2>
+        <label for="themes" class="label">Uno per riga. I doppioni vengono tolti, l'ordine viene mescolato.</label>
+        <textarea id="themes" rows="10" spellcheck="false" placeholder="Un gatto astronauta&#10;La pizza che vola&#10;Il vulcano timido"></textarea>
+        <div class="row">
+          <button class="btn btn-primary" id="load" type="button">Carica temi</button>
+          <span class="muted small" id="lines"></span>
+        </div>
+        <p class="note-msg" id="load-msg" role="status"></p>
+      </div>
+
+      <div class="panel">
+        <div class="row row-between">
+          <h2 class="ribbon ribbon-left"><span>Estrazioni</span></h2>
+          <button class="btn btn-danger btn-small" id="reset" type="button">Azzera le estrazioni</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th scope="col">Nome</th><th scope="col">Email</th><th scope="col">Tema</th><th scope="col">Quando</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <p class="muted empty" id="empty">Ancora nessuno ha estratto.</p>
+      </div>
+    </section>
+
+    </div>
+
+    <footer class="foot" id="foot" hidden>
+      <span class="js-email"></span>
+      <button class="link" id="logout" type="button">Esci</button>
+    </footer>
+  </main>
+
+  <script type="module">
+    import {
+      collection, doc, onSnapshot, getDocs, writeBatch,
+    } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+    import {
+      auth, db, login, onAuthStateChanged, signOut, isAdminUser, friendlyError, configMissing, redirectResult,
+    } from './firebase.js';
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => document.querySelectorAll(s);
+    const show = (name) => { for (const v of $$('.view')) v.hidden = v.dataset.view !== name; };
+    const fail = (e) => { console.error(e); $('.js-error').textContent = friendlyError(e); show('error'); };
+
+    const counterRef = doc(db, 'meta/counter');
+    const state = { assignments: [], pool: new Map(), counter: { next: 0, total: 0 } };
+    let unsubs = [];
+
+    if (configMissing) { $('.js-error').textContent = 'Manca la configurazione di Firebase in config.js.'; show('error'); }
+
+    $('#login').addEventListener('click', () => login().catch(fail));
+    $('#logout').addEventListener('click', () => signOut(auth));
+    redirectResult.then((r) => { if (r instanceof Error) fail(r); });
+
+    onAuthStateChanged(auth, (user) => {
+      if (configMissing) return;
+      unsubs.forEach((u) => u()); unsubs = [];
+      $('#foot').hidden = !user;
+      if (!user) return show('signin');
+      for (const el of $$('.js-email')) el.textContent = user.email;
+      if (!isAdminUser(user)) return show('denied');
+      show('admin');
+      listen();
+    });
+
+    // ── Dati in tempo reale ───────────────────────────────────────────────
+    function listen() {
+      const err = (e) => fail(e);
+      unsubs.push(
+        onSnapshot(counterRef, (s) => { state.counter = s.data() || { next: 0, total: 0 }; render(); }, err),
+        onSnapshot(collection(db, 'pool'), (s) => {
+          state.pool = new Map(s.docs.map((d) => [d.id, d.data().text]));
+          const ta = $('#themes');
+          if (!ta.dataset.touched && !ta.value) {
+            ta.value = [...state.pool.entries()].sort((a, b) => a[0] - b[0]).map(([, t]) => t).join('\n');
+            countLines();
+          }
+          render();
+        }, err),
+        onSnapshot(collection(db, 'assignments'), (s) => {
+          state.assignments = s.docs.map((d) => ({ uid: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+          render();
+        }, err),
+      );
+    }
+
+    const fmt = new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    function render() {
+      const { next, total } = state.counter;
+      $('#drawn').textContent = next;
+      $('#total').textContent = total;
+      $('#left').textContent = Math.max(0, total - next);
+      $('#bar').style.width = total ? `${(100 * next) / total}%` : '0';
+
+      const rows = [...state.assignments].sort((a, b) => (b.at?.toMillis?.() ?? 0) - (a.at?.toMillis?.() ?? 0));
+      const tbody = $('#rows');
+      tbody.replaceChildren(...rows.map((a) => {
+        const tr = document.createElement('tr');
+        const cells = [
+          a.name || '—',
+          a.email || '—',
+          state.pool.get(a.idx) ?? `#${a.idx}`,
+          a.at ? fmt.format(a.at.toDate()) : '—',
+        ];
+        cells.forEach((text, i) => {
+          const td = document.createElement('td');
+          td.textContent = text;
+          td.dataset.label = ['Nome', 'Email', 'Tema', 'Quando'][i];
+          if (i === 2) td.className = 'td-theme';
+          tr.append(td);
+        });
+        return tr;
+      }));
+      $('#empty').hidden = rows.length > 0;
+    }
+
+    // ── Utilità ───────────────────────────────────────────────────────────
+    function parseThemes(text) {
+      const seen = new Set();
+      const out = [];
+      let dupes = 0;
+      for (const raw of text.split(/\r?\n/)) {
+        const t = raw.replace(/\s+/g, ' ').trim();
+        if (!t) continue;
+        const key = t.toLocaleLowerCase('it');
+        if (seen.has(key)) { dupes++; continue; }
+        seen.add(key);
+        out.push(t.slice(0, 300));
+      }
+      return { themes: out, dupes };
+    }
+
+    // Intero casuale uniforme in [0, n) senza bias (crypto.getRandomValues + rejection sampling)
+    function randomInt(n) {
+      const max = Math.floor(0x100000000 / n) * n;
+      const buf = new Uint32Array(1);
+      do crypto.getRandomValues(buf); while (buf[0] >= max);
+      return buf[0] % n;
+    }
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = randomInt(i + 1);
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    async function commitInChunks(ops) {
+      for (let i = 0; i < ops.length; i += 400) {
+        const b = writeBatch(db);
+        for (const op of ops.slice(i, i + 400)) op(b);
+        await b.commit();
+      }
+    }
+
+    // Salva i temi mescolati e azzera le estrazioni.
+    // 1) blocca le estrazioni (total = 0)  2) cancella assegnazioni e vecchi temi
+    // 3) scrive i nuovi temi               4) riapre (next = 0, total = N)
+    async function writePool(themes) {
+      const shuffled = shuffle(themes);
+      const [assignSnap, poolSnap] = await Promise.all([
+        getDocs(collection(db, 'assignments')), getDocs(collection(db, 'pool')),
+      ]);
+      const b0 = writeBatch(db);
+      b0.set(counterRef, { next: 0, total: 0 });
+      await b0.commit();
+      await commitInChunks([
+        ...assignSnap.docs.map((d) => (b) => b.delete(d.ref)),
+        ...poolSnap.docs.filter((d) => !(Number(d.id) < shuffled.length)).map((d) => (b) => b.delete(d.ref)),
+        ...shuffled.map((text, i) => (b) => b.set(doc(db, 'pool', String(i)), { text })),
+      ]);
+      const b1 = writeBatch(db);
+      b1.set(counterRef, { next: 0, total: shuffled.length });
+      await b1.commit();
+    }
+
+    function countLines() {
+      const { themes, dupes } = parseThemes($('#themes').value);
+      $('#lines').textContent = `${themes.length} ${themes.length === 1 ? 'tema' : 'temi'}${dupes ? ` (${dupes} ${dupes === 1 ? 'doppione' : 'doppioni'})` : ''}`;
+    }
+    $('#themes').addEventListener('input', () => { $('#themes').dataset.touched = '1'; countLines(); });
+
+    async function withBusy(btn, label, fn) {
+      const old = btn.textContent;
+      btn.disabled = true; btn.textContent = label;
+      try { await fn(); } finally { btn.disabled = false; btn.textContent = old; }
+    }
+
+    $('#load').addEventListener('click', () => withBusy($('#load'), 'Carico…', async () => {
+      const msg = $('#load-msg');
+      const { themes, dupes } = parseThemes($('#themes').value);
+      if (!themes.length) { msg.textContent = 'Scrivi almeno un tema.'; return; }
+      const n = state.assignments.length || state.counter.next;
+      if (n > 0 && !confirm(`${n} ${n === 1 ? 'persona ha' : 'persone hanno'} già estratto.\nCaricando i temi le estrazioni verranno azzerate e tutti dovranno estrarre di nuovo.\n\nContinuare?`)) return;
+      try {
+        await writePool(themes);
+        msg.textContent = `Caricati ${themes.length} temi, mescolati.${dupes ? (dupes === 1 ? ' Tolto 1 doppione.' : ` Tolti ${dupes} doppioni.`) : ''}`;
+      } catch (e) { console.error(e); msg.textContent = friendlyError(e); }
+    }));
+
+    $('#reset').addEventListener('click', () => withBusy($('#reset'), 'Azzero…', async () => {
+      const themes = [...state.pool.entries()].sort((a, b) => a[0] - b[0]).map(([, t]) => t);
+      if (!themes.length) { alert('Non ci sono temi caricati.'); return; }
+      if (!confirm('Azzerare tutte le estrazioni?\nI temi verranno rimescolati e tutti dovranno estrarre di nuovo.')) return;
+      try { await writePool(themes); $('#load-msg').textContent = 'Estrazioni azzerate, temi rimescolati.'; }
+      catch (e) { console.error(e); alert(friendlyError(e)); }
+    }));
+  </script>
+</body>
+</html>
