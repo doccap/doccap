@@ -69,7 +69,7 @@ log('non-admin su /admin.html: accesso negato');
 const anna = await newPage();
 await anna.goto(BASE);
 await visible(anna, 'signin');
-await anna.screenshot({ path: SHOTS + '1-login.png' });
+await anna.screenshot({ path: SHOTS + '1-login.png', fullPage: true });
 await signIn(anna, 'anna@example.com', 'Anna Rossi');
 await visible(anna, 'draw');
 assert.match(await anna.textContent('.js-left'), /Restano 4 temi/);
@@ -105,7 +105,7 @@ for (const [p, e, n] of [[bruno, 'bruno@example.com', 'Bruno'], [carla, 'carla@e
 await Promise.all([bruno.click('#draw'), carla.click('#draw')]);
 await Promise.all([visible(bruno, 'reveal'), visible(carla, 'reveal')]);
 await bruno.waitForTimeout(1500);
-await bruno.screenshot({ path: SHOTS + '6-aperto-dark.png' });
+await bruno.screenshot({ path: SHOTS + '6-aperto-dark.png', fullPage: true });
 const themes = [themeAnna, await bruno.textContent('#theme'), await carla.textContent('#theme')];
 log('bruno e carla (simultanei):', themes[1], '|', themes[2]);
 assert.equal(new Set(themes).size, 3, 'temi duplicati!');
