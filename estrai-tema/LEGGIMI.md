@@ -17,6 +17,7 @@ Resta nel piano gratuito **Spark**: nessuna Cloud Function. Unicità e segretezz
 | `public/firebase.js` | inizializzazione Firebase e login (popup → redirect se bloccato) |
 | `public/style.css` | stile |
 | `firebase.json` | configurazione Hosting/Firestore/emulatori |
+| `.firebaserc` | progetto Firebase (`doccap-drawing-challenge`) |
 | `test/` | test delle regole + prova end-to-end sugli emulatori |
 
 ## Messa online (una volta sola, ~10 minuti)
@@ -34,7 +35,6 @@ Serve Node.js 20+ sul computer.
    ```bash
    npm install -g firebase-tools
    firebase login
-   firebase use --add          # scegli il progetto, alias "default"
    firebase deploy --only firestore:rules,hosting
    ```
 7. **Carica i temi** — apri `https://<ID-PROGETTO>.firebaseapp.com/admin.html`, entra con l'account admin, incolla i temi (uno per riga) → *Carica temi*.
