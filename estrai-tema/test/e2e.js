@@ -209,14 +209,22 @@ for (let i = 1; i <= 2; i++) {
   await voti.click('#drawings li:nth-child(2) .counter:nth-child(2) button[data-d="1"]');
   await voti.waitForFunction((n) => document.querySelector('#drawings li:nth-child(2) .counter:nth-child(2) output').textContent === `${n}/5`, i);
 }
-assert.equal(await voti.textContent('#drawings li:nth-child(2) .stamp'), 'Salvo');
-log(`voti: ${firstName} balla (3/5), l'altro è salvo (2/5)`);
+assert.equal(await voti.textContent('#drawings li:nth-child(2) .stamp'), 'Da votare');
+await voti.click('#drawings li:nth-child(2) .close-vote');
+await voti.waitForFunction(() => document.querySelector('#drawings li:nth-child(2) .stamp').textContent === 'Salvo');
+assert.ok(await voti.isDisabled('#drawings li:nth-child(2) .counter:nth-child(2) button[data-d="1"]'), 'a voto chiuso i contatori sono bloccati');
+log(`voti: ${firstName} balla (3/5), l'altro a voto chiuso è salvo (2/5)`);
 
 // Aggiunta manuale e presenti
 await voti.fill('#add-name', 'Ospite');
 await voti.fill('#add-theme', 'Un tema portato da casa');
 await voti.click('#add-form button[type="submit"]');
 await voti.waitForFunction(() => document.querySelectorAll('#drawings li').length === 3);
+assert.equal(await voti.textContent('#drawings li:nth-child(3) .stamp'), 'Da votare');
+await voti.click('#drawings li:nth-child(3) .close-vote');
+await voti.waitForFunction(() => document.querySelector('#drawings li:nth-child(3) .stamp').textContent === 'Spogliarello!');
+assert.match(await voti.textContent('#s-strip'), /Spogliarello \(1\): Ospite/);
+log('voti: nessuno indovina, voto chiuso → Spogliarello!');
 await voti.click('[data-present="-1"]');
 await voti.waitForFunction(() => document.querySelector('#s-voters').textContent === '4');
 assert.equal(await voti.textContent('#s-majority'), '3');

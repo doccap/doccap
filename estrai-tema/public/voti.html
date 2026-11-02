@@ -89,6 +89,7 @@
           </div>
           <p class="stats-line">Votano in <strong id="s-voters">0</strong> per ogni disegno · maggioranza da <strong id="s-majority">0</strong></p>
           <p class="stats-line" id="s-dancers"></p>
+          <p class="stats-line" id="s-strip" hidden></p>
         </div>
 
         <ol class="drawings" id="drawings"></ol>
@@ -259,6 +260,14 @@
     const voters = () => Math.max(1, (state.session?.present ?? 2) - 1);   // l'autore non vota il proprio disegno
     const majority = () => Math.floor(voters() / 2) + 1;                  // più della metà
     const dances = (d) => d.author >= majority() || d.themeOk >= majority();
+    // Esito del disegno: balla appena c'è la maggioranza; gli altri esiti solo a voto chiuso
+    function outcome(d) {
+      if (dances(d)) return 'balla';
+      if (!d.closed) return 'pending';
+      if ((d.author ?? 0) === 0 && (d.themeOk ?? 0) === 0) return 'strip';
+      return 'salvo';
+    }
+    const STAMP = { balla: 'Balla!', strip: 'Spogliarello!', salvo: 'Salvo', pending: 'Da votare' };
 
     for (const b of $$('[data-present]')) {
       b.addEventListener('click', () => {
@@ -300,12 +309,12 @@
       const [minus, plus] = wrap.querySelectorAll('button');
       minus.setAttribute('aria-label', `${label}: uno in meno (${d.name})`);
       plus.setAttribute('aria-label', `${label}: uno in più (${d.name})`);
-      minus.disabled = value <= 0;
-      plus.disabled = value >= voters();
+      minus.disabled = d.closed || value <= 0;
+      plus.disabled = d.closed || value >= voters();
       for (const b of [minus, plus]) {
         b.addEventListener('click', () => {
           const delta = Number(b.dataset.d);
-          if (value + delta < 0 || value + delta > voters()) return;
+          if (d.closed || value + delta < 0 || value + delta > voters()) return;
           updateDoc(doc(db, 'sessions', state.current, 'drawings', d.id), { [field]: increment(delta) }).catch(fail);
         });
       }
@@ -320,24 +329,37 @@
       $('#s-present').textContent = s.present;
       $('#s-voters').textContent = voters();
       $('#s-majority').textContent = majority();
-      const dancers = state.drawings.filter(dances).map((d) => d.name);
+      const by = (o) => state.drawings.filter((d) => outcome(d) === o).map((d) => d.name);
+      const dancers = by('balla'), strippers = by('strip');
       $('#s-dancers').textContent = dancers.length
         ? `Ballano (${dancers.length}): ${dancers.join(', ')}`
         : 'Per ora non balla nessuno.';
+      $('#s-strip').textContent = strippers.length ? `Spogliarello (${strippers.length}): ${strippers.join(', ')}` : '';
+      $('#s-strip').hidden = !strippers.length;
 
       $('#drawings').replaceChildren(...state.drawings.map((d) => {
         const li = document.createElement('li');
-        li.className = 'drawing' + (dances(d) ? ' is-dancing' : '');
+        const o = outcome(d);
+        li.className = `drawing is-${o}`;
         const head = document.createElement('div');
         head.className = 'drawing-head';
         const who = document.createElement('p'); who.className = 'drawing-name'; who.textContent = d.name;
         const what = document.createElement('p'); what.className = 'drawing-theme'; what.textContent = d.theme;
         const stamp = document.createElement('span'); stamp.className = 'stamp';
-        stamp.textContent = dances(d) ? 'Balla!' : 'Salvo';
+        stamp.textContent = STAMP[o];
         head.append(who, stamp, what);
         const counters = document.createElement('div');
         counters.className = 'counters';
         counters.append(counter(d, 'author', 'Autore indovinato'), counter(d, 'themeOk', 'Tema indovinato'));
+        const actions = document.createElement('div');
+        actions.className = 'drawing-actions';
+        const close = document.createElement('button');
+        close.type = 'button'; close.className = 'btn btn-small close-vote';
+        close.textContent = d.closed ? 'Riapri voto' : 'Chiudi voto';
+        close.setAttribute('aria-pressed', String(!!d.closed));
+        close.addEventListener('click', () => {
+          updateDoc(doc(db, 'sessions', state.current, 'drawings', d.id), { closed: !d.closed }).catch(fail);
+        });
         const del = document.createElement('button');
         del.type = 'button'; del.className = 'link drawing-del'; del.textContent = 'Togli disegno';
         del.addEventListener('click', () => {
@@ -345,7 +367,8 @@
             deleteDoc(doc(db, 'sessions', state.current, 'drawings', d.id)).catch(fail);
           }
         });
-        li.append(head, counters, del);
+        actions.append(close, del);
+        li.append(head, counters, actions);
         return li;
       }));
     }
