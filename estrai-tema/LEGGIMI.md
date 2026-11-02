@@ -14,6 +14,7 @@ Resta nel piano gratuito **Spark**: nessuna Cloud Function. Unicità e segretezz
 | `firestore.rules` | regole di sicurezza (contiene di nuovo l'email admin in `isAdmin()`) |
 | `public/index.html` | pagina dei giocatori |
 | `public/admin.html` | regia: carica temi, tabella in tempo reale, azzera |
+| `public/voti.html` | voti delle serate (solo admin): per ogni disegno quanti indovinano autore e tema, chi balla |
 | `public/firebase.js` | inizializzazione Firebase e login (popup → redirect se bloccato) |
 | `public/style.css` | stile |
 | `firebase.json` | configurazione Hosting/Firestore/emulatori |

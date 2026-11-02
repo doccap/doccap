@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Voti · Doccap Drawing Challenge</title>
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#5d5c4b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#23231c" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%B3%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Rokkitt:wght@400..800&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin">
+  <main class="page page-wide">
+    <header class="masthead">
+      <p class="kicker">Doccap Drawing Challenge <span aria-hidden="true">·</span> <a href="admin.html">regia</a></p>
+      <h1 class="title title-sm">Voti</h1>
+    </header>
+
+    <div class="content">
+
+    <section class="view" data-view="loading" aria-live="polite">
+      <p class="muted pulse">Un attimo…</p>
+    </section>
+
+    <section class="view" data-view="signin" hidden>
+      <p class="lead">Area riservata a chi organizza.</p>
+      <button class="btn btn-primary" id="login" type="button">Entra con Google</button>
+    </section>
+
+    <section class="view" data-view="denied" hidden>
+      <div class="card-msg" role="status">
+        <p class="msg-title">Accesso negato</p>
+        <p>Questa pagina è solo per chi organizza. Sei entrato come <strong class="js-email"></strong>.</p>
+      </div>
+    </section>
+
+    <section class="view" data-view="error" hidden>
+      <div class="card-msg" role="alert">
+        <p class="msg-title">Errore</p>
+        <p class="js-error"></p>
+      </div>
+    </section>
+
+    <section class="view votes" data-view="app" hidden>
+      <!-- Scelta della serata -->
+      <div class="panel session-bar">
+        <label class="label" for="session-select">Serata</label>
+        <div class="row">
+          <select id="session-select"></select>
+          <button class="btn btn-small" id="new-session" type="button">Nuova serata</button>
+        </div>
+
+        <form class="new-session" id="new-form" hidden>
+          <h2 class="ribbon ribbon-left"><span>Nuova serata</span></h2>
+          <div class="field">
+            <label class="label" for="new-title">Nome</label>
+            <input id="new-title" type="text" maxlength="80" required>
+          </div>
+          <div class="field">
+            <label class="label" for="new-present">Persone presenti</label>
+            <input id="new-present" type="number" min="2" max="100" inputmode="numeric" required>
+          </div>
+          <p class="hint" id="new-hint"></p>
+          <div class="row">
+            <button class="btn btn-primary" type="submit">Crea serata</button>
+            <button class="link" id="new-cancel" type="button">Annulla</button>
+          </div>
+        </form>
+      </div>
+
+      <p class="muted" id="no-sessions" hidden>Nessuna serata ancora. Creane una con "Nuova serata": i disegni vengono presi dalle estrazioni.</p>
+
+      <!-- Serata selezionata -->
+      <div id="session" hidden>
+        <div class="panel stats">
+          <p class="stats-kicker" id="s-title"></p>
+          <div class="present-row">
+            <span>Presenti</span>
+            <div class="stepper">
+              <button type="button" class="step" data-present="-1" aria-label="Un presente in meno">−</button>
+              <output id="s-present" aria-live="polite">0</output>
+              <button type="button" class="step" data-present="1" aria-label="Un presente in più">+</button>
+            </div>
+          </div>
+          <p class="stats-line">Votano in <strong id="s-voters">0</strong> per ogni disegno · maggioranza da <strong id="s-majority">0</strong></p>
+          <p class="stats-line" id="s-dancers"></p>
+        </div>
+
+        <ol class="drawings" id="drawings"></ol>
+
+        <form class="panel add-drawing" id="add-form">
+          <h2 class="ribbon ribbon-left"><span>Aggiungi disegno</span></h2>
+          <div class="field">
+            <label class="label" for="add-name">Autore</label>
+            <input id="add-name" type="text" maxlength="100" required>
+          </div>
+          <div class="field">
+            <label class="label" for="add-theme">Tema</label>
+            <input id="add-theme" type="text" maxlength="300" required>
+          </div>
+          <button class="btn btn-small" type="submit">Aggiungi</button>
+        </form>
+
+        <button class="btn btn-danger btn-small" id="delete-session" type="button">Elimina questa serata</button>
+      </div>
+    </section>
+
+    </div>
+
+    <footer class="foot" id="foot" hidden>
+      <span class="js-email"></span>
+      <button class="link" id="logout" type="button">Esci</button>
+    </footer>
+  </main>
+
+  <script type="module">
+    import {
+      collection, doc, onSnapshot, getDocs, addDoc, updateDoc, deleteDoc, writeBatch,
+      serverTimestamp, increment, query, orderBy,
+    } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+    import {
+      auth, db, login, onAuthStateChanged, signOut, isAdminUser, friendlyError, configMissing, redirectResult,
+    } from './firebase.js';
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => document.querySelectorAll(s);
+    const show = (name) => { for (const v of $$('.view')) v.hidden = v.dataset.view !== name; };
+    const fail = (e) => { console.error(e); $('.js-error').textContent = friendlyError(e); show('error'); };
+
+    const state = { sessions: [], current: null, session: null, drawings: [] };
+    let unsubs = [];
+    let unsubDrawings = null;
+
+    if (configMissing) { $('.js-error').textContent = 'Manca la configurazione di Firebase in config.js.'; show('error'); }
+    $('#login').addEventListener('click', () => login().catch(fail));
+    $('#logout').addEventListener('click', () => signOut(auth));
+    redirectResult.then((r) => { if (r instanceof Error) fail(r); });
+
+    onAuthStateChanged(auth, (user) => {
+      if (configMissing) return;
+      unsubs.forEach((u) => u()); unsubs = [];
+      unsubDrawings?.(); unsubDrawings = null;
+      $('#foot').hidden = !user;
+      if (!user) return show('signin');
+      for (const el of $$('.js-email')) el.textContent = user.email;
+      if (!isAdminUser(user)) return show('denied');
+      show('app');
+      listenSessions();
+    });
+
+    // ── Serate ────────────────────────────────────────────────────────────
+    function listenSessions() {
+      unsubs.push(onSnapshot(query(collection(db, 'sessions'), orderBy('createdAt', 'desc')), (snap) => {
+        state.sessions = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+        const wanted = location.hash.slice(1);
+        if (!state.sessions.some((s) => s.id === state.current)) {
+          state.current = state.sessions.some((s) => s.id === wanted) ? wanted : state.sessions[0]?.id ?? null;
+          listenDrawings();
+        }
+        state.session = state.sessions.find((s) => s.id === state.current) || null;
+        renderSessions();
+        render();
+      }, fail));
+    }
+
+    function renderSessions() {
+      const sel = $('#session-select');
+      sel.replaceChildren(...state.sessions.map((s) => {
+        const o = document.createElement('option');
+        o.value = s.id; o.textContent = s.title; o.selected = s.id === state.current;
+        return o;
+      }));
+      sel.disabled = state.sessions.length === 0;
+      $('#no-sessions').hidden = state.sessions.length > 0 || !$('#new-form').hidden;
+    }
+
+    $('#session-select').addEventListener('change', (e) => {
+      state.current = e.target.value;
+      state.session = state.sessions.find((s) => s.id === state.current) || null;
+      history.replaceState(null, '', '#' + state.current);
+      listenDrawings();
+      render();
+    });
+
+    function listenDrawings() {
+      unsubDrawings?.(); unsubDrawings = null;
+      state.drawings = [];
+      if (!state.current) return;
+      unsubDrawings = onSnapshot(query(collection(db, 'sessions', state.current, 'drawings'), orderBy('order')), (snap) => {
+        state.drawings = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        render();
+      }, fail);
+    }
+
+    // Nuova serata: copia autori e temi dalle estrazioni
+    const today = () => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+    let pendingDrawings = [];
+
+    $('#new-session').addEventListener('click', async () => {
+      const btn = $('#new-session');
+      btn.disabled = true;
+      try {
+        const [aSnap, pSnap] = await Promise.all([getDocs(collection(db, 'assignments')), getDocs(collection(db, 'pool'))]);
+        const pool = new Map(pSnap.docs.map((d) => [d.id, d.data().text]));
+        pendingDrawings = aSnap.docs
+          .map((d) => d.data())
+          .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it'))
+          .map((a) => ({ name: a.name || a.email, email: a.email || '', theme: pool.get(a.idx) ?? `#${a.idx}` }));
+        $('#new-title').value = `Serata del ${today()}`;
+        $('#new-present').value = Math.max(2, pendingDrawings.length);
+        $('#new-hint').textContent = pendingDrawings.length
+          ? `Verranno aggiunti ${pendingDrawings.length} disegni dalle estrazioni.`
+          : 'Nessuno ha ancora estratto: potrai aggiungere i disegni a mano.';
+        $('#new-form').hidden = false;
+        $('#no-sessions').hidden = true;
+        $('#new-title').focus();
+      } catch (e) { fail(e); } finally { btn.disabled = false; }
+    });
+    $('#new-cancel').addEventListener('click', () => { $('#new-form').hidden = true; renderSessions(); });
+
+    $('#new-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = $('#new-title').value.trim().slice(0, 80);
+      const present = Math.max(2, Math.min(100, parseInt($('#new-present').value, 10) || 2));
+      if (!title) return;
+      const submit = e.submitter; if (submit) submit.disabled = true;
+      try {
+        const ref = await addDoc(collection(db, 'sessions'), { title, present, createdAt: serverTimestamp() });
+        const b = writeBatch(db);
+        pendingDrawings.forEach((d, i) => b.set(doc(collection(db, 'sessions', ref.id, 'drawings')), { ...d, order: i, author: 0, themeOk: 0 }));
+        await b.commit();
+        state.current = ref.id;
+        history.replaceState(null, '', '#' + ref.id);
+        listenDrawings();
+        $('#new-form').hidden = true;
+      } catch (err) { fail(err); } finally { if (submit) submit.disabled = false; }
+    });
+
+    $('#delete-session').addEventListener('click', async () => {
+      const s = state.session; if (!s) return;
+      if (!confirm(`Eliminare "${s.title}" e tutti i suoi voti?`)) return;
+      try {
+        const snap = await getDocs(collection(db, 'sessions', s.id, 'drawings'));
+        const b = writeBatch(db);
+        snap.docs.forEach((d) => b.delete(d.ref));
+        b.delete(doc(db, 'sessions', s.id));
+        await b.commit();
+        state.current = null;
+        history.replaceState(null, '', location.pathname);
+      } catch (e) { fail(e); }
+    });
+
+    // ── Presenti e votanti ────────────────────────────────────────────────
+    const voters = () => Math.max(1, (state.session?.present ?? 2) - 1);   // l'autore non vota il proprio disegno
+    const majority = () => Math.floor(voters() / 2) + 1;                  // più della metà
+    const dances = (d) => d.author >= majority() || d.themeOk >= majority();
+
+    for (const b of $$('[data-present]')) {
+      b.addEventListener('click', () => {
+        const s = state.session; if (!s) return;
+        const next = Math.max(2, Math.min(100, s.present + Number(b.dataset.present)));
+        if (next !== s.present) updateDoc(doc(db, 'sessions', s.id), { present: next }).catch(fail);
+      });
+    }
+
+    // ── Disegni ───────────────────────────────────────────────────────────
+    $('#add-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = $('#add-name').value.trim().slice(0, 100);
+      const theme = $('#add-theme').value.trim().slice(0, 300);
+      if (!name || !theme || !state.current) return;
+      const order = state.drawings.reduce((m, d) => Math.max(m, d.order), -1) + 1;
+      try {
+        await addDoc(collection(db, 'sessions', state.current, 'drawings'), { name, email: '', theme, order, author: 0, themeOk: 0 });
+        $('#add-name').value = ''; $('#add-theme').value = '';
+      } catch (err) { fail(err); }
+    });
+
+    function counter(d, field, label) {
+      const wrap = document.createElement('div');
+      wrap.className = 'counter';
+      const value = d[field] ?? 0;
+      const ok = value >= majority();
+      wrap.innerHTML = `
+        <span class="counter-label"></span>
+        <div class="stepper">
+          <button type="button" class="step" data-d="-1">−</button>
+          <output></output>
+          <button type="button" class="step" data-d="1">+</button>
+        </div>`;
+      wrap.querySelector('.counter-label').textContent = label;
+      const out = wrap.querySelector('output');
+      out.textContent = `${value}/${voters()}`;
+      out.classList.toggle('hit', ok);
+      const [minus, plus] = wrap.querySelectorAll('button');
+      minus.setAttribute('aria-label', `${label}: uno in meno (${d.name})`);
+      plus.setAttribute('aria-label', `${label}: uno in più (${d.name})`);
+      minus.disabled = value <= 0;
+      plus.disabled = value >= voters();
+      for (const b of [minus, plus]) {
+        b.addEventListener('click', () => {
+          const delta = Number(b.dataset.d);
+          if (value + delta < 0 || value + delta > voters()) return;
+          updateDoc(doc(db, 'sessions', state.current, 'drawings', d.id), { [field]: increment(delta) }).catch(fail);
+        });
+      }
+      return wrap;
+    }
+
+    function render() {
+      const s = state.session;
+      $('#session').hidden = !s;
+      if (!s) return;
+      $('#s-title').textContent = s.title;
+      $('#s-present').textContent = s.present;
+      $('#s-voters').textContent = voters();
+      $('#s-majority').textContent = majority();
+      const dancers = state.drawings.filter(dances).map((d) => d.name);
+      $('#s-dancers').textContent = dancers.length
+        ? `Ballano (${dancers.length}): ${dancers.join(', ')}`
+        : 'Per ora non balla nessuno.';
+
+      $('#drawings').replaceChildren(...state.drawings.map((d) => {
+        const li = document.createElement('li');
+        li.className = 'drawing' + (dances(d) ? ' is-dancing' : '');
+        const head = document.createElement('div');
+        head.className = 'drawing-head';
+        const who = document.createElement('p'); who.className = 'drawing-name'; who.textContent = d.name;
+        const what = document.createElement('p'); what.className = 'drawing-theme'; what.textContent = d.theme;
+        const stamp = document.createElement('span'); stamp.className = 'stamp';
+        stamp.textContent = dances(d) ? 'Balla!' : 'Salvo';
+        head.append(who, stamp, what);
+        const counters = document.createElement('div');
+        counters.className = 'counters';
+        counters.append(counter(d, 'author', 'Autore indovinato'), counter(d, 'themeOk', 'Tema indovinato'));
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'link drawing-del'; del.textContent = 'Togli disegno';
+        del.addEventListener('click', () => {
+          if (confirm(`Togliere il disegno di ${d.name} da questa serata?`)) {
+            deleteDoc(doc(db, 'sessions', state.current, 'drawings', d.id)).catch(fail);
+          }
+        });
+        li.append(head, counters, del);
+        return li;
+      }));
+    }
+  </script>
+</body>
+</html>

@@ -174,5 +174,70 @@ await visible(adminMobile, 'admin');
 await adminMobile.waitForFunction(() => document.querySelectorAll('#rows tr').length === 1);
 await adminMobile.screenshot({ path: SHOTS + 'admin-mobile-dark.png', fullPage: true });
 
+// ── 9. Pagina voti (solo admin) ──────────────────────────────────────────
+await anna.click('#draw'); await visible(anna, 'reveal');
+
+await intruder.goto(`${BASE}/voti.html`);
+await visible(intruder, 'denied');
+log('non-admin su /voti.html: accesso negato');
+
+const voti = await newPage();
+await voti.goto(`${BASE}/voti.html`);
+await visible(voti, 'signin');
+await signIn(voti, ADMIN_EMAIL, 'Organizzatore');
+await visible(voti, 'app');
+await voti.waitForSelector('#no-sessions:not([hidden])');
+await voti.click('#new-session');
+await voti.waitForSelector('#new-form:not([hidden])');
+assert.match(await voti.textContent('#new-hint'), /2 disegni/);
+await voti.fill('#new-present', '6');
+await voti.click('#new-form button[type="submit"]');
+await voti.waitForFunction(() => document.querySelectorAll('#drawings li').length === 2);
+assert.equal(await voti.textContent('#s-voters'), '5');
+assert.equal(await voti.textContent('#s-majority'), '3');
+
+// 3 su 5 indovinano l'autore del primo disegno → balla
+const firstName = await voti.textContent('#drawings li:first-child .drawing-name');
+for (let i = 1; i <= 3; i++) {
+  await voti.click('#drawings li:first-child .counter:first-child button[data-d="1"]');
+  await voti.waitForFunction((n) => document.querySelector('#drawings li:first-child .counter:first-child output').textContent === `${n}/5`, i);
+}
+assert.equal(await voti.textContent('#drawings li:first-child .stamp'), 'Balla!');
+assert.match(await voti.textContent('#s-dancers'), new RegExp(firstName));
+// 2 su 5 indovinano il tema del secondo → salvo
+for (let i = 1; i <= 2; i++) {
+  await voti.click('#drawings li:nth-child(2) .counter:nth-child(2) button[data-d="1"]');
+  await voti.waitForFunction((n) => document.querySelector('#drawings li:nth-child(2) .counter:nth-child(2) output').textContent === `${n}/5`, i);
+}
+assert.equal(await voti.textContent('#drawings li:nth-child(2) .stamp'), 'Salvo');
+log(`voti: ${firstName} balla (3/5), l'altro è salvo (2/5)`);
+
+// Aggiunta manuale e presenti
+await voti.fill('#add-name', 'Ospite');
+await voti.fill('#add-theme', 'Un tema portato da casa');
+await voti.click('#add-form button[type="submit"]');
+await voti.waitForFunction(() => document.querySelectorAll('#drawings li').length === 3);
+await voti.click('[data-present="-1"]');
+await voti.waitForFunction(() => document.querySelector('#s-voters').textContent === '4');
+assert.equal(await voti.textContent('#s-majority'), '3');
+await voti.screenshot({ path: SHOTS + 'voti.png', fullPage: true });
+log('voti: disegno aggiunto a mano, presenti modificati');
+
+// Persistenza: ricaricando, la serata e i voti restano
+await voti.reload();
+await visible(voti, 'app');
+await voti.waitForFunction(() => document.querySelectorAll('#drawings li').length === 3);
+assert.equal(await voti.textContent('#drawings li:first-child .counter:first-child output'), '3/4');
+
+await adminMobile.goto(`${BASE}/voti.html`);
+await visible(adminMobile, 'app');
+await adminMobile.waitForFunction(() => document.querySelectorAll('#drawings li').length === 3);
+await adminMobile.screenshot({ path: SHOTS + 'voti-dark.png', fullPage: true });
+
+voti.on('dialog', (d) => d.accept());
+await voti.click('#delete-session');
+await voti.waitForSelector('#no-sessions:not([hidden])');
+log('voti: serata eliminata');
+
 await browser.close();
 console.log('\n✔ flusso completo giocatore + admin OK');
