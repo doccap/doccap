@@ -206,3 +206,21 @@ test("l'admin legge tutto, carica temi e azzera", async () => {
   await assertSucceeds(setDoc(doc(db, 'meta/counter'), { next: 0, total: 1 }));
   await assertSucceeds(deleteDoc(doc(db, 'pool/3')));
 });
+
+test('serate e voti: solo l\'admin legge e scrive', async () => {
+  const adm = admin();
+  await assertSucceeds(setDoc(doc(adm, 'sessions/s1'), { title: 'Serata', present: 5, createdAt: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(adm, 'sessions/s1/drawings/d1'), { name: 'Anna', theme: 'X', order: 0, author: 0, themeOk: 0 }));
+  await assertSucceeds(updateDoc(doc(adm, 'sessions/s1/drawings/d1'), { author: increment(1) }));
+  await assertSucceeds(getDocs(collection(adm, 'sessions/s1/drawings')));
+
+  const alice = player('alice');
+  await assertFails(getDoc(doc(alice, 'sessions/s1')));
+  await assertFails(getDocs(collection(alice, 'sessions')));
+  await assertFails(getDocs(collection(alice, 'sessions/s1/drawings')));
+  await assertFails(updateDoc(doc(alice, 'sessions/s1/drawings/d1'), { author: increment(1) }));
+  await assertFails(setDoc(doc(alice, 'sessions/s2'), { title: 'Mia', present: 3 }));
+  const fake = env.authenticatedContext('fake', { email: ADMIN_EMAIL, email_verified: false }).firestore();
+  await assertFails(getDocs(collection(fake, 'sessions')));
+  await assertFails(getDocs(collection(env.unauthenticatedContext().firestore(), 'sessions')));
+});

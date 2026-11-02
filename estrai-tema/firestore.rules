@@ -76,5 +76,13 @@ service cloud.firestore {
         // il contatore viene incrementato nella stessa scrittura
         && getAfter(counterPath()).data.next == get(counterPath()).data.next + 1;
     }
+
+    // ── Serate e voti: sessions/{id} + sessions/{id}/drawings/{id} — solo admin ──
+    match /sessions/{sessionId} {
+      allow read, write: if isAdmin();
+      match /drawings/{drawingId} {
+        allow read, write: if isAdmin();
+      }
+    }
   }
 }
